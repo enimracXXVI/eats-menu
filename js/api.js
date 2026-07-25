@@ -2,11 +2,12 @@
 // never touch the network directly, so this is the only file that needed to
 // change when the Apps Script backend went live.
 //
-// No explicit Content-Type is set on the POST body on purpose: Apps Script
-// doesn't handle a CORS preflight (OPTIONS) request, so the body is sent as
-// plain text (the browser's default for a string body) to keep this a
-// CORS-simple request. backend/Code.gs parses it back out of
-// e.postData.contents.
+// Requests go over GET, with the payload in the query string, not POST with
+// a JSON body. Apps Script Web Apps reliably send Access-Control-Allow-Origin
+// on GET responses but not on POST — a cross-origin POST here still runs
+// server-side, but the browser silently blocks reading the response, which
+// looks exactly like a network failure from the app's side. See the comment
+// in backend/Code.gs for the same note on the other end of this contract.
 
 import { showToast } from "./dom.js";
 
@@ -14,12 +15,13 @@ const API_BASE_URL =
   "https://script.google.com/macros/s/AKfycbw5m2oKfpRpe_5G2G5Fd1S6_W59nO1RuEg3qfL-MF-3K_MLmfSjVwO1b5BrXXwtZn-T1g/exec";
 
 async function call(action, payload = {}) {
+  const url = `${API_BASE_URL}?action=${encodeURIComponent(action)}&payload=${encodeURIComponent(
+    JSON.stringify(payload)
+  )}`;
+
   let response;
   try {
-    response = await fetch(API_BASE_URL, {
-      method: "POST",
-      body: JSON.stringify({ action, payload }),
-    });
+    response = await fetch(url);
   } catch (err) {
     showToast("Couldn't reach the sheet — check your connection.");
     throw err;

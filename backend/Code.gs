@@ -2,8 +2,17 @@
  * Canteen Tally backend — Google Apps Script Web App bound to the sheet.
  *
  * This is the ONLY thing that touches the spreadsheet. The frontend (GitHub
- * Pages) calls it as a JSON API over POST — see js/api.js for the client
- * side of this contract, which mirrors every function name here 1:1.
+ * Pages) calls it as a JSON API — see js/api.js for the client side of this
+ * contract, which mirrors every function name here 1:1.
+ *
+ * Requests go over GET, not POST: Apps Script Web Apps reliably send
+ * Access-Control-Allow-Origin on GET responses, but not on POST — calling
+ * this over POST from a different origin (any static host, incl. GitHub
+ * Pages) gets silently CORS-blocked by the browser even though the request
+ * itself succeeds server-side. GET with the payload in the query string is
+ * the standard workaround; our payloads are small (ids, names, prices), so
+ * URL length is a non-issue. doPost is kept for direct/local calls but the
+ * shipped frontend never uses it.
  *
  * Deploy: Extensions > Apps Script from the sheet, paste this in as Code.gs,
  * then Deploy > New deployment > Web app > Execute as: Me > Who has access:
@@ -18,11 +27,18 @@ const SHEET = {
   SETTINGS: "settings",
 };
 
+function doGet(e) {
+  const action = e.parameter.action;
+  const payload = e.parameter.payload ? JSON.parse(e.parameter.payload) : {};
+  return handleAction(action, payload);
+}
+
 function doPost(e) {
   const body = JSON.parse(e.postData.contents);
-  const action = body.action;
-  const payload = body.payload || {};
+  return handleAction(body.action, body.payload || {});
+}
 
+function handleAction(action, payload) {
   const handlers = {
     findUserByUsername: () => findUserByUsername(payload.username),
     getUsers: () => getUsers(),
