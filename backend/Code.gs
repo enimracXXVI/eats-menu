@@ -115,12 +115,11 @@ function deleteRow(name, rowIndex) {
   getSheetByName(name).deleteRow(rowIndex);
 }
 
-function nextId(rows, key, prefix) {
-  const max = rows.reduce((m, row) => {
-    const n = parseInt(String(row[key]).slice(prefix.length), 10);
-    return isNaN(n) ? m : Math.max(m, n);
-  }, 0);
-  return prefix + String(max + 1).padStart(5, "0");
+// Ids are plain numbers in the sheet — U00001/M00004/etc. is just a custom
+// number FORMAT on those cells, not the stored value, so ids generated here
+// must be numbers too, not zero-padded prefixed strings.
+function nextId(rows, key) {
+  return rows.reduce((max, row) => Math.max(max, Number(row[key]) || 0), 0) + 1;
 }
 
 function isoDate(date) {
@@ -149,7 +148,7 @@ function getUsers() {
 function addUser({ username, display_name }) {
   const users = readTable(SHEET.USERS);
   const row = {
-    user_id: nextId(users, "user_id", "U"),
+    user_id: nextId(users, "user_id"),
     username: username.trim().toLowerCase(),
     display_name: display_name.trim(),
     is_superuser: false,
@@ -180,7 +179,7 @@ function applyEdit(edit) {
   if (edit.type === "new_item") {
     const menu = readTable(SHEET.MENU);
     appendRow(SHEET.MENU, {
-      item_id: nextId(menu, "item_id", "M"),
+      item_id: nextId(menu, "item_id"),
       name: edit.proposed_name,
       price: edit.proposed_price,
       active: true,
@@ -210,7 +209,7 @@ function proposeMenuEdit(edit, proposer) {
   const now = isoTimestamp(new Date());
   const row = Object.assign(
     {
-      edit_id: nextId(edits, "edit_id", "E"),
+      edit_id: nextId(edits, "edit_id"),
       status: "pending",
       reviewed_by: "",
       reviewed_at: "",
@@ -287,10 +286,10 @@ function logPurchases(user, cartItems) {
   const date = isoDate(now);
   const timestamp = isoTimestamp(now);
 
-  let lastId = nextId(purchases, "purchase_id", "P");
+  let nextPurchaseId = nextId(purchases, "purchase_id");
   const created = cartItems.map((item) => {
     const row = {
-      purchase_id: lastId,
+      purchase_id: nextPurchaseId,
       user_id: user.user_id,
       username: user.username,
       item_id: item.item_id,
@@ -302,7 +301,7 @@ function logPurchases(user, cartItems) {
       timestamp,
     };
     appendRow(SHEET.PURCHASES, row);
-    lastId = "P" + String(parseInt(lastId.slice(1), 10) + 1).padStart(5, "0");
+    nextPurchaseId += 1;
     return row;
   });
   return created;
