@@ -7,7 +7,11 @@ import { api } from "./api.js";
 import { state, addToCart, decrementCartItem, removeCartLine, clearCart, cartTotal, cartUnitCount } from "./state.js";
 
 export function buildCartBar(currency, rerender) {
-  if (state.cart.length === 0) return el("div", {}, []);
+  if (state.cart.length === 0) {
+    return el("div", { className: "cart-bar cart-bar--empty" }, [
+      el("span", { className: "cart-bar__summary" }, "Your cart is empty"),
+    ]);
+  }
 
   const count = cartUnitCount();
   return el("div", { className: "cart-bar", onClick: () => openCartSheet(currency, rerender) }, [

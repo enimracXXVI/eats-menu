@@ -151,6 +151,18 @@
   border-radius: var(--radius-pill);
 }
 
+/* header's remaining-budget chip, same safe/warning/over states as the
+   ticket and the gauge */
+.chip--warning {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.chip--critical {
+  border-color: var(--color-critical);
+  color: var(--color-critical-strong);
+}
+
 /* ---------------------------------------------------------------------- *
  * Eyebrow / section label — small uppercase mono label above a group
  * ---------------------------------------------------------------------- */
@@ -440,8 +452,9 @@
 }
 
 /* ---------------------------------------------------------------------- *
- * Cart bar — sticky bottom strip that appears once the day's cart has
- * items. Distinct from the bottom nav; sits directly above it while open.
+ * Cart bar — sticky bottom strip, always present on Today and Menu (a
+ * fixed landmark, not something that pops in and out). .cart-bar--empty
+ * is the resting state: neutral, not tappable, nothing to review yet.
  * ---------------------------------------------------------------------- */
 
 .cart-bar {
@@ -455,6 +468,18 @@
   border-radius: var(--radius-pill);
   padding: 10px 10px 10px 18px;
   box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.55);
+}
+
+.cart-bar--empty {
+  background: var(--color-ink-3);
+  color: var(--color-text-lo);
+  box-shadow: none;
+  border: 1px solid var(--color-line);
+  padding: 10px 18px;
+}
+
+.cart-bar--empty .cart-bar__summary {
+  text-align: center;
 }
 
 .cart-bar__summary {

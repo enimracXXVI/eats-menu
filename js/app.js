@@ -1,4 +1,5 @@
-import { el, mount } from "./dom.js";
+import { el, mount, fmtMoney, budgetState } from "./dom.js";
+import { api } from "./api.js";
 import { state, logout } from "./state.js";
 import { renderLogin } from "./screens/login.js";
 import { renderToday } from "./screens/today.js";
@@ -35,13 +36,18 @@ function buildNav(activePath) {
   return el("nav", { className: "nav" }, items);
 }
 
+// The remaining-budget chip starts as a placeholder and fills in once the
+// bundle resolves (see render()) — the header/nav/shell shouldn't wait on
+// that network round trip just to appear.
 function buildHeader() {
-  return el("header", { className: "app-header" }, [
+  const remainingChip = el("span", { className: "chip" }, "…");
+
+  const header = el("header", { className: "app-header" }, [
     el("div", { className: "app-header__id" }, [
       el("img", { className: "brand-logo brand-logo--header", src: "assets/icons/logo.svg", alt: "Canteen Tally" }),
     ]),
     el("div", { className: "app-header__actions" }, [
-      el("span", { className: "chip" }, state.user.display_name),
+      remainingChip,
       el(
         "button",
         {
@@ -57,6 +63,17 @@ function buildHeader() {
       ),
     ]),
   ]);
+
+  return { header, remainingChip };
+}
+
+function updateRemainingChip(chipEl, bundle) {
+  const spent = bundle.purchases.reduce((sum, p) => sum + p.price_paid, 0);
+  const { remaining, state: budget } = budgetState(spent, bundle.settings.daily_allowance);
+  const modifier = budget === "over" ? " chip--critical" : budget === "warning" ? " chip--warning" : "";
+  chipEl.className = `chip${modifier}`;
+  chipEl.textContent =
+    remaining >= 0 ? `${fmtMoney(remaining, bundle.settings.currency)} left` : `${fmtMoney(-remaining, bundle.settings.currency)} over`;
 }
 
 async function render() {
@@ -73,11 +90,22 @@ async function render() {
     return;
   }
 
+  const { header, remainingChip } = buildHeader();
   const screenEl = el("div", { className: "screen" }, []);
-  const shell = el("div", { className: "app-shell" }, [buildHeader(), screenEl, buildNav(tab.path)]);
+  const shell = el("div", { className: "app-shell" }, [header, screenEl, buildNav(tab.path)]);
   mount(appRoot, shell);
 
-  await tab.render(screenEl, () => render());
+  const todayBundlePromise = api.getTodayBundle({
+    userId: state.user.user_id,
+    date: new Date().toISOString().slice(0, 10),
+  });
+  todayBundlePromise.then((bundle) => updateRemainingChip(remainingChip, bundle)).catch(() => {});
+
+  if (tab.path === "today") {
+    await tab.render(screenEl, () => render(), await todayBundlePromise);
+  } else {
+    await tab.render(screenEl, () => render());
+  }
 }
 
 window.addEventListener("hashchange", render);

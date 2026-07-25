@@ -2,7 +2,7 @@ import { el, fmtMoney, showToast, sectionHeader, CURRENCIES, formatPriceOnBlur }
 import { api } from "../api.js";
 import { state } from "../state.js";
 
-function buildApprovals(pendingEdits, users, rerender) {
+function buildApprovals(pendingEdits, users, currency, rerender) {
   const usersByUsername = new Map(users.map((u) => [u.username, u]));
 
   if (pendingEdits.length === 0) {
@@ -23,12 +23,12 @@ function buildApprovals(pendingEdits, users, rerender) {
         ? el("span", { className: "approval-row__diff" }, [
             label,
             " ",
-            el("span", { className: "approval-row__num" }, fmtMoney(edit.proposed_price)),
+            el("span", { className: "approval-row__num" }, fmtMoney(edit.proposed_price, currency)),
           ])
         : el("span", { className: "approval-row__diff" }, [
             label,
             " · ",
-            el("span", { className: "approval-row__num" }, fmtMoney(edit.proposed_price)),
+            el("span", { className: "approval-row__num" }, fmtMoney(edit.proposed_price, currency)),
           ]);
 
     async function decide(approve) {
@@ -165,16 +165,12 @@ function buildSettingsCard(settings, rerender) {
 export async function renderAdmin(container, rerender) {
   container.replaceChildren(el("p", { className: "empty" }, "Loading…"));
 
-  const [pendingEdits, users, settings] = await Promise.all([
-    api.getPendingEdits("pending"),
-    api.getUsers(),
-    api.getSettings(),
-  ]);
+  const { pendingEdits, users, settings } = await api.getAdminBundle();
 
   container.replaceChildren(
     el("div", { className: "screen__section" }, [
       sectionHeader("Waiting on your approval"),
-      buildApprovals(pendingEdits, users, rerender),
+      buildApprovals(pendingEdits, users, settings.currency, rerender),
     ]),
     buildUsersCard(users, rerender),
     buildSettingsCard(settings, rerender)

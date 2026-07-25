@@ -1,21 +1,14 @@
-import { el, fmtMoney, fmtTime, sectionHeader, showToast } from "../dom.js";
+import { el, fmtMoney, fmtTime, sectionHeader, showToast, budgetState } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
 import { buildCartBar } from "../cart.js";
 
 function buildTicket(spent, allowance, currency) {
-  const remaining = allowance - spent;
-  const ratio = allowance > 0 ? spent / allowance : 0;
+  const { remaining, ratio, state: budget } = budgetState(spent, allowance);
 
-  let fillModifier = "";
-  let remainingModifier = "";
-  if (ratio >= 1) {
-    fillModifier = " gauge__fill--over";
-    remainingModifier = " ticket__remaining--critical";
-  } else if (ratio >= 0.85) {
-    fillModifier = " gauge__fill--warning";
-    remainingModifier = " ticket__remaining--warning";
-  }
+  const fillModifier = budget === "over" ? " gauge__fill--over" : budget === "warning" ? " gauge__fill--warning" : "";
+  const remainingModifier =
+    budget === "over" ? " ticket__remaining--critical" : budget === "warning" ? " ticket__remaining--warning" : "";
 
   const headline =
     remaining >= 0 ? `${fmtMoney(remaining, currency)} left` : `${fmtMoney(-remaining, currency)} over`;
@@ -45,7 +38,7 @@ function buildTicket(spent, allowance, currency) {
 
 function buildLoggedRows(purchases, currency, onDeleted) {
   if (purchases.length === 0) {
-    return el("p", { className: "empty" }, "Nothing logged yet today — add something from Menu.");
+    return el("p", { className: "empty" }, "Nothing purchased yet today — add something from Menu.");
   }
   const rows = purchases.map((p) =>
     el("div", { className: "row" }, [
@@ -74,13 +67,18 @@ function buildLoggedRows(purchases, currency, onDeleted) {
   return el("div", { className: "rows" }, rows);
 }
 
-export async function renderToday(container, rerender) {
+// `bundle` is {settings, purchases} for today, already fetched once by
+// app.js for the header — passed in here so this screen doesn't repeat the
+// same request a second time.
+export async function renderToday(container, rerender, bundle) {
   container.replaceChildren(el("p", { className: "empty" }, "Loading…"));
 
-  const [settings, purchases] = await Promise.all([
-    api.getSettings(),
-    api.getPurchases({ userId: state.user.user_id, date: new Date().toISOString().slice(0, 10) }),
-  ]);
+  const { settings, purchases } =
+    bundle ||
+    (await api.getTodayBundle({
+      userId: state.user.user_id,
+      date: new Date().toISOString().slice(0, 10),
+    }));
 
   const spent = purchases.reduce((sum, p) => sum + p.price_paid, 0);
 
@@ -89,7 +87,7 @@ export async function renderToday(container, rerender) {
   container.replaceChildren(
     buildTicket(spent, settings.daily_allowance, settings.currency),
     el("div", { className: "screen__section" }, [
-      sectionHeader("Logged today"),
+      sectionHeader("Purchased today"),
       buildLoggedRows(purchases, settings.currency, rerender),
     ]),
     cartBarSlot

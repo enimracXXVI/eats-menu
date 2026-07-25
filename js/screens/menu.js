@@ -58,7 +58,7 @@ function openProposeSheet({ item, onSubmitted }) {
   const close = openSheet(isNewItem ? "Propose a new item" : `Edit ${item.name}`, body);
 }
 
-function buildMenuRows(menu, pendingByItemId, query, rerender) {
+function buildMenuRows(menu, pendingByItemId, query, currency, rerender) {
   const filtered = menu.filter((item) => item.name.toLowerCase().includes(query.trim().toLowerCase()));
 
   if (filtered.length === 0) {
@@ -82,7 +82,7 @@ function buildMenuRows(menu, pendingByItemId, query, rerender) {
         el("span", { className: "row__title" }, item.name),
         pending ? el("span", { className: "badge badge--pending" }, "Pending") : null,
         cartLine ? el("span", { className: "qty-badge" }, String(cartLine.units)) : null,
-        el("span", { className: "row__price u-tabular" }, fmtMoney(item.price)),
+        el("span", { className: "row__price u-tabular" }, fmtMoney(item.price, currency)),
         pending
           ? null
           : el(
@@ -106,11 +106,7 @@ function buildMenuRows(menu, pendingByItemId, query, rerender) {
 export async function renderMenu(container, rerender) {
   container.replaceChildren(el("p", { className: "empty" }, "Loading…"));
 
-  const [menu, pendingEdits, settings] = await Promise.all([
-    api.getMenu(),
-    api.getPendingEdits("pending"),
-    api.getSettings(),
-  ]);
+  const { menu, pendingEdits, settings } = await api.getMenuBundle();
 
   const pendingByItemId = new Map(pendingEdits.filter((e) => e.item_id).map((e) => [e.item_id, e]));
   const newItemProposals = pendingEdits.filter((e) => e.type === "new_item");
@@ -118,7 +114,7 @@ export async function renderMenu(container, rerender) {
   let query = "";
   const rowsSlot = el("div", {});
   function refreshRows() {
-    rowsSlot.replaceChildren(buildMenuRows(menu, pendingByItemId, query, refreshRows));
+    rowsSlot.replaceChildren(buildMenuRows(menu, pendingByItemId, query, settings.currency, refreshRows));
     cartBarSlot.replaceChildren(buildCartBar(settings.currency, rerender));
   }
 
@@ -137,27 +133,36 @@ export async function renderMenu(container, rerender) {
 
   refreshRows();
 
+  // Visible to everyone, not just superusers, so who's asking for what is
+  // always shown here — this isn't the approval queue, just the catalog
+  // reflecting what's already been proposed.
   const newItemRows = newItemProposals.map((edit) =>
     el("div", { className: "row" }, [
       el("span", { className: "row__title" }, edit.proposed_name),
+      el("span", { className: "row__meta" }, `by ${edit.proposed_by}`),
       el("span", { className: "badge badge--pending" }, "New item"),
-      el("span", { className: "row__price u-tabular" }, fmtMoney(edit.proposed_price)),
+      el("span", { className: "row__price u-tabular" }, fmtMoney(edit.proposed_price, settings.currency)),
     ])
   );
 
   container.replaceChildren(
-    el("div", { className: "screen__section" }, [sectionHeader("Today's menu"), searchInput, rowsSlot]),
-    newItemRows.length > 0
-      ? el("div", { className: "screen__section" }, [sectionHeader("Awaiting approval"), el("div", { className: "rows" }, newItemRows)])
-      : null,
-    el(
-      "button",
-      {
-        className: "btn btn--outline btn--block",
-        onClick: () => openProposeSheet({ item: null, onSubmitted: rerender }),
-      },
-      "+ Propose a new item"
-    ),
-    cartBarSlot
+    ...[
+      el("div", { className: "screen__section" }, [sectionHeader("Menu"), searchInput, rowsSlot]),
+      newItemRows.length > 0
+        ? el("div", { className: "screen__section" }, [
+            sectionHeader("Awaiting approval"),
+            el("div", { className: "rows" }, newItemRows),
+          ])
+        : null,
+      el(
+        "button",
+        {
+          className: "btn btn--outline btn--block",
+          onClick: () => openProposeSheet({ item: null, onSubmitted: rerender }),
+        },
+        "+ Propose a new item"
+      ),
+      cartBarSlot,
+    ].filter(Boolean)
   );
 }

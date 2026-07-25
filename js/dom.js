@@ -47,6 +47,17 @@ export function formatPriceOnBlur(input) {
   });
 }
 
+// Shared by the header chip and the Today ticket, so "how much is left"
+// and its safe/warning/over color always agree wherever it's shown.
+export function budgetState(spent, allowance) {
+  const remaining = allowance - spent;
+  const ratio = allowance > 0 ? spent / allowance : 0;
+  let state = "safe";
+  if (ratio >= 1) state = "over";
+  else if (ratio >= 0.85) state = "warning";
+  return { remaining, ratio, state };
+}
+
 export function fmtTime(isoTimestamp) {
   if (!isoTimestamp) return "";
   return isoTimestamp.slice(11, 16);

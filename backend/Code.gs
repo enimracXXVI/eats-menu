@@ -53,6 +53,13 @@ function handleAction(action, payload) {
     deletePurchase: () => deletePurchase(payload.purchaseId, payload.requestedBy),
     proposeMenuEdit: () => proposeMenuEdit(payload.edit, payload.proposer),
     reviewEdit: () => reviewEdit(payload.editId, payload.approve, payload.reviewer),
+    // Bundles — one round trip per screen instead of two or three. Apps
+    // Script's per-request overhead is the dominant cost of this backend,
+    // so cutting request COUNT matters far more than trimming what each one
+    // does.
+    getTodayBundle: () => getTodayBundle(payload),
+    getMenuBundle: () => getMenuBundle(),
+    getAdminBundle: () => getAdminBundle(),
   };
 
   const handler = handlers[action];
@@ -86,29 +93,58 @@ function getSheetByName(name) {
   return sheet;
 }
 
+// Cheap header read — getRange(1, ...) instead of getDataRange(), so this
+// doesn't cost more as a table grows. appendRow/updateRow each need this on
+// every call, so the difference matters.
+function getHeaders(sheet) {
+  return sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+}
+
+// Sheets silently coerces a date-shaped string (our own isoDate/isoTimestamp
+// output) into a real Date cell value depending on the column's format,
+// regardless of how it was written. getValues() then hands back a Date
+// object instead of the string we wrote — which broke the "today" purchase
+// filter and same-day delete check, since a Date object is never === a
+// string. Reformatting on read (rather than fighting Sheets' autodetection
+// on write) keeps every date/timestamp field a predictable string no matter
+// how the cell happens to be formatted.
+function normalizeCell(header, value) {
+  if (!(value instanceof Date)) return value;
+  if (header === "date") return isoDate(value);
+  if (header === "timestamp" || header === "proposed_at" || header === "reviewed_at") {
+    return isoTimestamp(value);
+  }
+  return value;
+}
+
 function readTable(name) {
   const sheet = getSheetByName(name);
   const values = sheet.getDataRange().getValues();
   const headers = values[0];
   return values.slice(1).map((row, index) => {
     const obj = { _row: index + 2 }; // 1-based, +1 for header row
-    headers.forEach((header, col) => (obj[header] = row[col]));
+    headers.forEach((header, col) => (obj[header] = normalizeCell(header, row[col])));
     return obj;
   });
 }
 
 function appendRow(name, obj) {
   const sheet = getSheetByName(name);
-  const headers = sheet.getDataRange().getValues()[0];
+  const headers = getHeaders(sheet);
   sheet.appendRow(headers.map((h) => (obj[h] !== undefined ? obj[h] : "")));
 }
 
+// One read + one write for the whole row, regardless of how many fields in
+// `patch` actually changed — cheaper than a setValue() per field.
 function updateRow(name, rowIndex, patch) {
   const sheet = getSheetByName(name);
-  const headers = sheet.getDataRange().getValues()[0];
+  const headers = getHeaders(sheet);
+  const range = sheet.getRange(rowIndex, 1, 1, headers.length);
+  const current = range.getValues()[0];
   headers.forEach((header, col) => {
-    if (patch[header] !== undefined) sheet.getRange(rowIndex, col + 1).setValue(patch[header]);
+    if (patch[header] !== undefined) current[col] = patch[header];
   });
+  range.setValues([current]);
 }
 
 function deleteRow(name, rowIndex) {
@@ -134,9 +170,12 @@ function isoTimestamp(date) {
 // Users
 // ---------------------------------------------------------------------------
 
+// Returns the user regardless of active/inactive, so the caller can tell
+// "not on the list" apart from "on the list but deactivated" — matching
+// them into the same null used to mean losing that distinction entirely.
 function findUserByUsername(username) {
   const user = readTable(SHEET.USERS).find(
-    (u) => String(u.username).toLowerCase() === String(username).trim().toLowerCase() && u.active
+    (u) => String(u.username).toLowerCase() === String(username).trim().toLowerCase()
   );
   return user || null;
 }
@@ -280,7 +319,13 @@ function getPurchases({ userId, date }) {
   );
 }
 
+// Cart items are written as one batched setValues() call instead of one
+// appendRow() per item — a 3-item cart was previously 3 separate round
+// trips into the Sheets service just for the writes, on top of everything
+// else a request already costs.
 function logPurchases(user, cartItems) {
+  const sheet = getSheetByName(SHEET.PURCHASES);
+  const headers = getHeaders(sheet);
   const purchases = readTable(SHEET.PURCHASES);
   const now = new Date();
   const date = isoDate(now);
@@ -300,10 +345,14 @@ function logPurchases(user, cartItems) {
       date,
       timestamp,
     };
-    appendRow(SHEET.PURCHASES, row);
     nextPurchaseId += 1;
     return row;
   });
+
+  const startRow = sheet.getLastRow() + 1;
+  const values = created.map((row) => headers.map((h) => (row[h] !== undefined ? row[h] : "")));
+  sheet.getRange(startRow, 1, values.length, headers.length).setValues(values);
+
   return created;
 }
 
@@ -316,4 +365,20 @@ function deletePurchase(purchaseId, requestedBy) {
   if (purchase.date !== isoDate(new Date())) throw new Error("You can only delete a purchase logged today.");
   deleteRow(SHEET.PURCHASES, purchase._row);
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// Bundles — combine what each screen needs into a single request/response.
+// ---------------------------------------------------------------------------
+
+function getTodayBundle({ userId, date }) {
+  return { settings: getSettings(), purchases: getPurchases({ userId, date }) };
+}
+
+function getMenuBundle() {
+  return { menu: getMenu({}), pendingEdits: getPendingEdits("pending"), settings: getSettings() };
+}
+
+function getAdminBundle() {
+  return { pendingEdits: getPendingEdits("pending"), users: getUsers(), settings: getSettings() };
 }

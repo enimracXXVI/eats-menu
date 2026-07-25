@@ -45,6 +45,15 @@ export function renderLogin(onLoggedIn) {
           return;
         }
 
+        if (!user.active) {
+          errorSlot.replaceChildren(
+            el("p", { className: "field__error" }, "This account is deactivated — ask your superuser.")
+          );
+          submitBtn.removeAttribute("disabled");
+          submitBtn.textContent = "Log in";
+          return;
+        }
+
         login(user);
         onLoggedIn();
       },
