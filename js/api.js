@@ -58,6 +58,6 @@ export const api = {
   // One request per screen instead of two or three — Apps Script's per-call
   // overhead dominates load time far more than what each call actually does.
   getTodayBundle: (opts = {}) => call("getTodayBundle", opts),
-  getMenuBundle: () => call("getMenuBundle"),
-  getAdminBundle: () => call("getAdminBundle"),
+  getMenuBundle: (opts = {}) => call("getMenuBundle", opts),
+  getAdminBundle: (opts = {}) => call("getAdminBundle", opts),
 };

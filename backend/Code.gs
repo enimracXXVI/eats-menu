@@ -56,14 +56,27 @@ function handleAction(action, payload) {
     // Bundles — one round trip per screen instead of two or three. Apps
     // Script's per-request overhead is the dominant cost of this backend,
     // so cutting request COUNT matters far more than trimming what each one
-    // does.
+    // does. Each bundle also carries today's purchases, so the header's
+    // remaining-budget chip never needs a request of its own either.
     getTodayBundle: () => getTodayBundle(payload),
-    getMenuBundle: () => getMenuBundle(),
-    getAdminBundle: () => getAdminBundle(),
+    getMenuBundle: () => getMenuBundle(payload),
+    getAdminBundle: () => getAdminBundle(payload),
   };
 
   const handler = handlers[action];
   if (!handler) return jsonOutput({ error: "Unknown action: " + action });
+
+  // Only writes need the script lock — serializing read requests behind it
+  // was pointless contention: the header's bundle fetch and a screen's own
+  // bundle fetch now often run concurrently, and reads can never race each
+  // other since nothing here mutates the sheet.
+  if (!WRITE_ACTIONS.has(action)) {
+    try {
+      return jsonOutput(handler());
+    } catch (err) {
+      return jsonOutput({ error: String(err) });
+    }
+  }
 
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
@@ -75,6 +88,16 @@ function handleAction(action, payload) {
     lock.releaseLock();
   }
 }
+
+const WRITE_ACTIONS = new Set([
+  "addUser",
+  "updateUser",
+  "updateSettings",
+  "logPurchases",
+  "deletePurchase",
+  "proposeMenuEdit",
+  "reviewEdit",
+]);
 
 function jsonOutput(value) {
   return ContentService.createTextOutput(JSON.stringify(value)).setMimeType(
@@ -158,12 +181,23 @@ function nextId(rows, key) {
   return rows.reduce((max, row) => Math.max(max, Number(row[key]) || 0), 0) + 1;
 }
 
+// The Apps Script PROJECT has its own timezone setting, separate from the
+// bound spreadsheet's timezone (File > Settings, in the sheet itself) — they
+// can silently differ. Sheets auto-coerces our date-shaped strings into real
+// Date cells using the SPREADSHEET's timezone (see normalizeCell above), so
+// formatting must use that same timezone too, or the two conversions don't
+// cancel out and every timestamp comes back shifted by whatever the gap
+// between the two timezones happens to be.
+function timeZone() {
+  return SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+}
+
 function isoDate(date) {
-  return Utilities.formatDate(date, Session.getScriptTimeZone(), "yyyy-MM-dd");
+  return Utilities.formatDate(date, timeZone(), "yyyy-MM-dd");
 }
 
 function isoTimestamp(date) {
-  return Utilities.formatDate(date, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm");
+  return Utilities.formatDate(date, timeZone(), "yyyy-MM-dd'T'HH:mm");
 }
 
 // ---------------------------------------------------------------------------
@@ -375,10 +409,20 @@ function getTodayBundle({ userId, date }) {
   return { settings: getSettings(), purchases: getPurchases({ userId, date }) };
 }
 
-function getMenuBundle() {
-  return { menu: getMenu({}), pendingEdits: getPendingEdits("pending"), settings: getSettings() };
+function getMenuBundle({ userId, date }) {
+  return {
+    menu: getMenu({}),
+    pendingEdits: getPendingEdits("pending"),
+    settings: getSettings(),
+    purchases: getPurchases({ userId, date }),
+  };
 }
 
-function getAdminBundle() {
-  return { pendingEdits: getPendingEdits("pending"), users: getUsers(), settings: getSettings() };
+function getAdminBundle({ userId, date }) {
+  return {
+    pendingEdits: getPendingEdits("pending"),
+    users: getUsers(),
+    settings: getSettings(),
+    purchases: getPurchases({ userId, date }),
+  };
 }

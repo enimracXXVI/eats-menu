@@ -5,11 +5,12 @@ import { renderLogin } from "./screens/login.js";
 import { renderToday } from "./screens/today.js";
 import { renderMenu } from "./screens/menu.js";
 import { renderAdmin } from "./screens/admin.js";
+import { mountCartDock, clearCartChangeListeners } from "./cart.js";
 
 const TABS = [
-  { path: "today", label: "Today", mark: "T", render: renderToday },
-  { path: "menu", label: "Menu", mark: "M", render: renderMenu },
-  { path: "admin", label: "Admin", mark: "A", render: renderAdmin, superuserOnly: true },
+  { path: "today", label: "Today", mark: "T", render: renderToday, fetchBundle: api.getTodayBundle, showCartDock: true },
+  { path: "menu", label: "Menu", mark: "M", render: renderMenu, fetchBundle: api.getMenuBundle, showCartDock: true },
+  { path: "admin", label: "Admin", mark: "A", render: renderAdmin, fetchBundle: api.getAdminBundle, superuserOnly: true },
 ];
 
 const appRoot = document.getElementById("app");
@@ -48,6 +49,7 @@ function buildHeader() {
     ]),
     el("div", { className: "app-header__actions" }, [
       remainingChip,
+      el("span", { className: "chip" }, state.user.display_name),
       el(
         "button",
         {
@@ -73,7 +75,9 @@ function updateRemainingChip(chipEl, bundle) {
   const modifier = budget === "over" ? " chip--critical" : budget === "warning" ? " chip--warning" : "";
   chipEl.className = `chip${modifier}`;
   chipEl.textContent =
-    remaining >= 0 ? `${fmtMoney(remaining, bundle.settings.currency)} left` : `${fmtMoney(-remaining, bundle.settings.currency)} over`;
+    remaining >= 0
+      ? `${fmtMoney(remaining, bundle.settings.currency)} left`
+      : `${fmtMoney(-remaining, bundle.settings.currency)} over`;
 }
 
 async function render() {
@@ -90,21 +94,33 @@ async function render() {
     return;
   }
 
+  clearCartChangeListeners();
+
   const { header, remainingChip } = buildHeader();
-  const screenEl = el("div", { className: "screen" }, []);
-  const shell = el("div", { className: "app-shell" }, [header, screenEl, buildNav(tab.path)]);
+  const screenEl = el("div", { className: "screen" }, [el("p", { className: "empty" }, "Loading…")]);
+  const cartDockEl = tab.showCartDock ? el("div", { className: "cart-dock" }, []) : null;
+
+  const shell = el(
+    "div",
+    { className: "app-shell" },
+    [header, screenEl, cartDockEl, buildNav(tab.path)].filter(Boolean)
+  );
   mount(appRoot, shell);
 
-  const todayBundlePromise = api.getTodayBundle({
-    userId: state.user.user_id,
-    date: new Date().toISOString().slice(0, 10),
-  });
-  todayBundlePromise.then((bundle) => updateRemainingChip(remainingChip, bundle)).catch(() => {});
+  try {
+    const bundle = await tab.fetchBundle({
+      userId: state.user.user_id,
+      date: new Date().toISOString().slice(0, 10),
+    });
 
-  if (tab.path === "today") {
-    await tab.render(screenEl, () => render(), await todayBundlePromise);
-  } else {
-    await tab.render(screenEl, () => render());
+    updateRemainingChip(remainingChip, bundle);
+    if (cartDockEl) mountCartDock(cartDockEl, bundle.settings.currency, () => render());
+
+    await tab.render(screenEl, () => render(), bundle);
+  } catch {
+    // api.js already toasted the specific error — just don't leave the
+    // screen stuck on "Loading…" forever.
+    screenEl.replaceChildren(el("p", { className: "empty" }, "Couldn't load. Try again."));
   }
 }
 

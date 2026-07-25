@@ -162,10 +162,8 @@ function buildSettingsCard(settings, rerender) {
   ]);
 }
 
-export async function renderAdmin(container, rerender) {
-  container.replaceChildren(el("p", { className: "empty" }, "Loading…"));
-
-  const { pendingEdits, users, settings } = await api.getAdminBundle();
+export function renderAdmin(container, rerender, bundle) {
+  const { pendingEdits, users, settings } = bundle;
 
   container.replaceChildren(
     el("div", { className: "screen__section" }, [

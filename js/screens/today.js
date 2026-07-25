@@ -1,7 +1,6 @@
 import { el, fmtMoney, fmtTime, sectionHeader, showToast, budgetState } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
-import { buildCartBar } from "../cart.js";
 
 function buildTicket(spent, allowance, currency) {
   const { remaining, ratio, state: budget } = budgetState(spent, allowance);
@@ -67,29 +66,19 @@ function buildLoggedRows(purchases, currency, onDeleted) {
   return el("div", { className: "rows" }, rows);
 }
 
-// `bundle` is {settings, purchases} for today, already fetched once by
-// app.js for the header — passed in here so this screen doesn't repeat the
-// same request a second time.
-export async function renderToday(container, rerender, bundle) {
-  container.replaceChildren(el("p", { className: "empty" }, "Loading…"));
-
-  const { settings, purchases } =
-    bundle ||
-    (await api.getTodayBundle({
-      userId: state.user.user_id,
-      date: new Date().toISOString().slice(0, 10),
-    }));
-
+// `bundle` ({settings, purchases}) is fetched once by app.js — it also
+// drives the header's remaining-budget chip, so this screen doesn't repeat
+// that request itself. The cart dock lives at the app-shell level (cart.js),
+// not here.
+export function renderToday(container, rerender, bundle) {
+  const { settings, purchases } = bundle;
   const spent = purchases.reduce((sum, p) => sum + p.price_paid, 0);
-
-  const cartBarSlot = el("div", {}, buildCartBar(settings.currency, rerender));
 
   container.replaceChildren(
     buildTicket(spent, settings.daily_allowance, settings.currency),
     el("div", { className: "screen__section" }, [
       sectionHeader("Purchased today"),
       buildLoggedRows(purchases, settings.currency, rerender),
-    ]),
-    cartBarSlot
+    ])
   );
 }

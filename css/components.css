@@ -358,6 +358,22 @@
   white-space: nowrap;
 }
 
+/* Stacked title + subtitle inside a .row, e.g. a new-item proposal with
+   who asked for it underneath the name. */
+.row__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.row__proposer {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--color-paprika-strong);
+}
+
 .row--tappable {
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease-standard);
@@ -452,14 +468,22 @@
 }
 
 /* ---------------------------------------------------------------------- *
- * Cart bar — sticky bottom strip, always present on Today and Menu (a
- * fixed landmark, not something that pops in and out). .cart-bar--empty
- * is the resting state: neutral, not tappable, nothing to review yet.
+ * Cart dock — lives in the app shell as a sibling of .screen and .nav (see
+ * app.js), never inside the scrolling screen content. That's what makes it
+ * reachable without scrolling: it isn't "sticky within a long list", it's
+ * structurally always at the bottom, just above the nav. Empty cart = an
+ * empty dock, not a placeholder bar.
  * ---------------------------------------------------------------------- */
 
+.cart-dock:empty {
+  display: none;
+}
+
+.cart-dock {
+  padding: 0 var(--space-4) var(--space-3);
+}
+
 .cart-bar {
-  position: sticky;
-  bottom: calc(var(--nav-height, 64px) + var(--space-3));
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -468,18 +492,6 @@
   border-radius: var(--radius-pill);
   padding: 10px 10px 10px 18px;
   box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.55);
-}
-
-.cart-bar--empty {
-  background: var(--color-ink-3);
-  color: var(--color-text-lo);
-  box-shadow: none;
-  border: 1px solid var(--color-line);
-  padding: 10px 18px;
-}
-
-.cart-bar--empty .cart-bar__summary {
-  text-align: center;
 }
 
 .cart-bar__summary {

@@ -1,7 +1,7 @@
 import { el, fmtMoney, openSheet, showToast, sectionHeader, formatPriceOnBlur } from "../dom.js";
 import { api } from "../api.js";
-import { state, addToCart } from "../state.js";
-import { buildCartBar } from "../cart.js";
+import { state } from "../state.js";
+import { addToCart, onCartChange } from "../cart.js";
 
 function openProposeSheet({ item, onSubmitted }) {
   const isNewItem = !item;
@@ -58,6 +58,10 @@ function openProposeSheet({ item, onSubmitted }) {
   const close = openSheet(isNewItem ? "Propose a new item" : `Edit ${item.name}`, body);
 }
 
+// `rerender` here is always the real app-level rerender (from app.js) — a
+// proposed edit changes server data (a new/updated pendingEdits row, maybe
+// the menu itself for a superuser), so it needs a real refetch, unlike a
+// plain cart tap which onCartChange already handles locally.
 function buildMenuRows(menu, pendingByItemId, query, currency, rerender) {
   const filtered = menu.filter((item) => item.name.toLowerCase().includes(query.trim().toLowerCase()));
 
@@ -73,10 +77,12 @@ function buildMenuRows(menu, pendingByItemId, query, currency, rerender) {
       "div",
       {
         className: `row row--tappable${cartLine ? " row--selected" : ""}`,
-        onClick: () => {
-          addToCart(item);
-          rerender();
-        },
+        // No manual refresh call needed — addToCart (from cart.js) notifies
+        // every subscriber, including this screen's own refreshRows (see
+        // onCartChange below), so the row's highlight/count and the dock
+        // update together no matter where a cart change came from: this
+        // tap, or +/-/remove inside the cart sheet.
+        onClick: () => addToCart(item),
       },
       [
         el("span", { className: "row__title" }, item.name),
@@ -103,10 +109,9 @@ function buildMenuRows(menu, pendingByItemId, query, currency, rerender) {
   return el("div", { className: "rows" }, rows);
 }
 
-export async function renderMenu(container, rerender) {
-  container.replaceChildren(el("p", { className: "empty" }, "Loading…"));
-
-  const { menu, pendingEdits, settings } = await api.getMenuBundle();
+// `bundle` ({menu, pendingEdits, settings}) is fetched once by app.js.
+export function renderMenu(container, rerender, bundle) {
+  const { menu, pendingEdits, settings } = bundle;
 
   const pendingByItemId = new Map(pendingEdits.filter((e) => e.item_id).map((e) => [e.item_id, e]));
   const newItemProposals = pendingEdits.filter((e) => e.type === "new_item");
@@ -114,9 +119,9 @@ export async function renderMenu(container, rerender) {
   let query = "";
   const rowsSlot = el("div", {});
   function refreshRows() {
-    rowsSlot.replaceChildren(buildMenuRows(menu, pendingByItemId, query, settings.currency, refreshRows));
-    cartBarSlot.replaceChildren(buildCartBar(settings.currency, rerender));
+    rowsSlot.replaceChildren(buildMenuRows(menu, pendingByItemId, query, settings.currency, rerender));
   }
+  onCartChange(refreshRows);
 
   const searchInput = el("input", {
     className: "field__input",
@@ -129,8 +134,6 @@ export async function renderMenu(container, rerender) {
     },
   });
 
-  const cartBarSlot = el("div", {}, buildCartBar(settings.currency, rerender));
-
   refreshRows();
 
   // Visible to everyone, not just superusers, so who's asking for what is
@@ -138,8 +141,10 @@ export async function renderMenu(container, rerender) {
   // reflecting what's already been proposed.
   const newItemRows = newItemProposals.map((edit) =>
     el("div", { className: "row" }, [
-      el("span", { className: "row__title" }, edit.proposed_name),
-      el("span", { className: "row__meta" }, `by ${edit.proposed_by}`),
+      el("div", { className: "row__title-group" }, [
+        el("span", { className: "row__title" }, edit.proposed_name),
+        el("span", { className: "row__proposer" }, `by ${edit.proposed_by}`),
+      ]),
       el("span", { className: "badge badge--pending" }, "New item"),
       el("span", { className: "row__price u-tabular" }, fmtMoney(edit.proposed_price, settings.currency)),
     ])
@@ -162,7 +167,6 @@ export async function renderMenu(container, rerender) {
         },
         "+ Propose a new item"
       ),
-      cartBarSlot,
     ].filter(Boolean)
   );
 }

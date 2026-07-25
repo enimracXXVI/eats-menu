@@ -47,7 +47,7 @@ export function renderLogin(onLoggedIn) {
 
         if (!user.active) {
           errorSlot.replaceChildren(
-            el("p", { className: "field__error" }, "This account is deactivated — ask your superuser.")
+            el("p", { className: "field__error" }, "This account is deactivated.")
           );
           submitBtn.removeAttribute("disabled");
           submitBtn.textContent = "Log in";
