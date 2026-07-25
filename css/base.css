@@ -24,7 +24,15 @@ body {
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: 1.5;
-  min-height: 100vh;
+  /* No min-height here on purpose: #app is display:contents (see
+     layout.css), so .app-shell is body's real flex child and already sets
+     its own explicit 100svh. A min-height on body too — especially the
+     old min-height:100vh this used to be — is redundant at best and a
+     real bug at worst: plain vh is the LARGEST possible viewport (chrome
+     hidden), so that floor made body taller than the visible area
+     whenever the browser's address bar was showing, which is exactly
+     what let the whole page scroll regardless of how .app-shell itself
+     was sized. */
   overscroll-behavior-y: contain;
 }
 
