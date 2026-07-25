@@ -1,0 +1,98 @@
+/* ==========================================================================
+   Base — resets and element defaults. No component-specific rules here.
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-backdrop);
+  color: var(--color-text-hi);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  min-height: 100vh;
+  overscroll-behavior-y: contain;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-mustard);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--color-paprika);
+  color: var(--color-paper);
+}
+
+.u-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.u-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

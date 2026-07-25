@@ -1,0 +1,742 @@
+/* ==========================================================================
+   Components — the only place visual styling for reusable UI pieces lives.
+   Every element on every screen is built from what's declared here.
+   Naming: block / block__element / block--modifier (BEM-ish).
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------- *
+ * Buttons
+ *
+ * .btn is the base. Pick exactly one visual modifier:
+ *   .btn--primary    solid paprika  — the one commit action per screen
+ *   .btn--outline    outline, neutral — secondary action
+ *   .btn--safe       outline sage   — approve / confirm-positive
+ *   .btn--critical   outline rust   — reject / destructive
+ * Size modifiers: .btn--block (full width), .btn--sm (compact / inline)
+ * .btn--icon is the small circular icon-only button (e.g. propose-edit pencil)
+ * ---------------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  letter-spacing: 0.01em;
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid transparent;
+  transition: background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn--block {
+  display: flex;
+  width: 100%;
+  padding: 14px;
+  font-size: var(--text-base);
+}
+
+.btn--sm {
+  padding: 8px 14px;
+  font-size: var(--text-xs);
+}
+
+.btn--primary {
+  background: var(--color-paprika);
+  color: var(--color-paper);
+}
+.btn--primary:hover {
+  background: var(--color-paprika-strong);
+}
+
+.btn--outline {
+  background: transparent;
+  border-color: var(--color-line-strong);
+  color: var(--color-text-hi);
+}
+.btn--outline:hover {
+  border-color: var(--color-text-hi);
+}
+
+.btn--safe {
+  background: transparent;
+  border-color: var(--color-safe);
+  color: var(--color-safe-strong);
+}
+.btn--safe:hover {
+  background: var(--color-safe);
+  color: var(--color-ink);
+}
+
+.btn--critical {
+  background: transparent;
+  border-color: var(--color-critical);
+  color: var(--color-critical-strong);
+}
+.btn--critical:hover {
+  background: var(--color-critical);
+  color: var(--color-paper);
+}
+
+.btn--icon {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-text-lo);
+  flex-shrink: 0;
+}
+.btn--icon:hover {
+  color: var(--color-text-hi);
+  border-color: var(--color-text-hi);
+}
+
+/* ---------------------------------------------------------------------- *
+ * Badges / chips — small state labels, never used as the accent color.
+ * .badge--pending   dashed paprika  — a queued, unapproved change
+ * .badge--superuser mustard text    — marks the superuser in a list
+ * .badge--muted     neutral         — inactive / disabled item
+ * ---------------------------------------------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.badge--pending {
+  border: 1px dashed var(--color-paprika);
+  color: var(--color-paprika-strong);
+}
+
+.badge--superuser {
+  background: rgba(231, 178, 62, 0.14);
+  color: var(--color-mustard);
+}
+
+.badge--muted {
+  background: var(--color-ink-3);
+  color: var(--color-text-lo);
+}
+
+/* pill used for the per-user daily allowance readout in the top bar */
+.chip {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.06em;
+  background: var(--color-ink-3);
+  border: 1px solid var(--color-line);
+  color: var(--color-text-hi);
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
+}
+
+/* ---------------------------------------------------------------------- *
+ * Eyebrow / section label — small uppercase mono label above a group
+ * ---------------------------------------------------------------------- */
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-lo);
+}
+
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.section-divider__tag {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-mustard);
+  white-space: nowrap;
+}
+
+.section-divider__rule {
+  flex: 1;
+  height: 1px;
+  background: var(--color-line);
+}
+
+/* ---------------------------------------------------------------------- *
+ * Ticket — the day's budget summary. Appears once per screen, top of Today.
+ * ---------------------------------------------------------------------- */
+
+.ticket {
+  background: var(--color-paper);
+  color: var(--color-text-ink);
+  border-radius: var(--radius-md);
+  padding: 20px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  box-shadow: var(--shadow-card);
+}
+
+.ticket__remaining-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-ink-lo);
+}
+
+.ticket__remaining {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: var(--text-3xl);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.ticket__remaining--warning {
+  color: var(--color-warning);
+}
+
+.ticket__remaining--critical {
+  color: var(--color-critical);
+}
+
+.ticket__perforation {
+  position: relative;
+  height: 1px;
+  border-top: 2px dashed var(--color-line-ink);
+  margin: 0 -18px;
+}
+
+.ticket__perforation::before,
+.ticket__perforation::after {
+  content: "";
+  position: absolute;
+  top: -7px;
+  width: 14px;
+  height: 14px;
+  background: var(--color-backdrop);
+  border-radius: 50%;
+}
+.ticket__perforation::before {
+  left: -7px;
+}
+.ticket__perforation::after {
+  right: -7px;
+}
+
+.ticket__gauge-caption {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-ink-lo);
+}
+
+.ticket__gauge-caption strong {
+  color: var(--color-text-ink);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------- *
+ * Gauge — the spend progress bar. Reused standalone (styleguide) and
+ * inside .ticket. Fill color communicates state; it is not the brand accent.
+ * ---------------------------------------------------------------------- */
+
+.gauge {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.gauge__track {
+  position: relative;
+  height: 10px;
+  border-radius: 6px;
+  background: rgba(34, 41, 31, 0.12);
+  overflow: hidden;
+}
+
+.gauge__track--on-dark {
+  background: rgba(243, 238, 225, 0.1);
+}
+
+.gauge__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 6px;
+  background: var(--color-safe);
+  transition: width var(--duration-base) var(--ease-standard);
+}
+
+.gauge__fill--warning {
+  background: var(--color-warning);
+}
+
+.gauge__fill--over {
+  background: var(--color-critical);
+}
+
+.gauge__marks {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-ink-lo);
+}
+
+/* ---------------------------------------------------------------------- *
+ * Rows — the shared list-row pattern used for purchases, menu items and
+ * approval entries. A row is a flex line inside a .rows group.
+ * ---------------------------------------------------------------------- */
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--color-line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.row {
+  background: var(--color-ink-2);
+  padding: 12px 13px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.row__title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row__meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--color-text-lo);
+}
+
+.row__price {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-hi);
+  min-width: 54px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.row--tappable {
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+.row--tappable:hover,
+.row--tappable:active {
+  background: var(--color-ink-3);
+}
+
+.row--selected {
+  background: rgba(210, 98, 44, 0.14);
+  box-shadow: inset 3px 0 0 var(--color-paprika);
+}
+
+/* ---------------------------------------------------------------------- *
+ * Menu card — richer than a plain row: used on the Menu screen where each
+ * item also carries a category label and an edit action.
+ * ---------------------------------------------------------------------- */
+
+.menu-card {
+  background: var(--color-ink-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  padding: 12px 13px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.menu-card--pending {
+  border-style: dashed;
+  border-color: var(--color-paprika);
+  background: rgba(210, 98, 44, 0.07);
+}
+
+.menu-card__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.menu-card__name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-card__category {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-paprika-strong);
+}
+
+.menu-card__price {
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.menu-card__price-old {
+  color: var(--color-text-lo);
+  text-decoration: line-through;
+  font-size: var(--text-2xs);
+  margin-right: 4px;
+}
+
+/* ---------------------------------------------------------------------- *
+ * Approval row — a pending edit awaiting a superuser's decision (Admin).
+ * ---------------------------------------------------------------------- */
+
+.approval-row {
+  background: var(--color-ink-3);
+  border-radius: var(--radius-md);
+  padding: 12px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.approval-row__who {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-lo);
+}
+
+.approval-row__diff {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.approval-row__num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.approval-row__arrow {
+  color: var(--color-text-lo);
+  margin: 0 6px;
+}
+
+.approval-row__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.approval-row__actions .btn {
+  flex: 1;
+}
+
+/* ---------------------------------------------------------------------- *
+ * Cart bar — sticky bottom strip that appears once the day's cart has
+ * items. Distinct from the bottom nav; sits directly above it while open.
+ * ---------------------------------------------------------------------- */
+
+.cart-bar {
+  position: sticky;
+  bottom: calc(var(--nav-height, 64px) + var(--space-3));
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--color-paprika);
+  color: var(--color-paper);
+  border-radius: var(--radius-pill);
+  padding: 10px 10px 10px 18px;
+  box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.55);
+}
+
+.cart-bar__summary {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cart-bar__summary .u-tabular {
+  font-family: var(--font-mono);
+}
+
+.cart-bar .btn--primary {
+  background: var(--color-ink);
+}
+.cart-bar .btn--primary:hover {
+  background: var(--color-ink-3);
+}
+
+/* ---------------------------------------------------------------------- *
+ * Sheet — bottom-anchored panel for the cart detail and the propose-edit
+ * form. Slides up over the current screen; dismissed via backdrop or Close.
+ * ---------------------------------------------------------------------- */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 18, 13, 0.6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 40;
+  animation: sheet-fade var(--duration-base) var(--ease-standard);
+}
+
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--color-ink);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-sheet);
+  padding: var(--space-5) var(--space-5) var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  animation: sheet-up var(--duration-base) var(--ease-standard);
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.sheet__handle {
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-line-strong);
+  margin: 0 auto;
+}
+
+.sheet__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-xl);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.sheet__actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.sheet__actions .btn {
+  flex: 1;
+}
+
+/* ---------------------------------------------------------------------- *
+ * Field — form controls. One look, everywhere (login, propose-edit, admin).
+ * ---------------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.field__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-lo);
+}
+
+.field__input {
+  background: var(--color-ink-2);
+  border: 1.5px solid var(--color-line-strong);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  color: var(--color-text-hi);
+  font-size: var(--text-base);
+}
+
+.field__input::placeholder {
+  color: var(--color-text-lo);
+}
+
+.field__input:focus {
+  border-color: var(--color-mustard);
+  outline: none;
+}
+
+.field__hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-lo);
+}
+
+.field__error {
+  font-size: var(--text-xs);
+  color: var(--color-critical-strong);
+}
+
+/* switch used in Admin for is_superuser / active toggles */
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 40px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: var(--color-ink-3);
+  border: 1px solid var(--color-line-strong);
+  flex-shrink: 0;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-text-lo);
+  transition: transform var(--duration-fast) var(--ease-standard),
+    background var(--duration-fast) var(--ease-standard);
+}
+
+.switch--on {
+  background: rgba(111, 153, 98, 0.25);
+  border-color: var(--color-safe);
+}
+.switch--on::after {
+  transform: translateX(16px);
+  background: var(--color-safe-strong);
+}
+
+/* ---------------------------------------------------------------------- *
+ * Card — generic surface for Admin sections (Users list, Settings form).
+ * ---------------------------------------------------------------------- */
+
+.card {
+  background: var(--color-ink-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.card__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-lg);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+/* ---------------------------------------------------------------------- *
+ * Empty state — used wherever a list has nothing in it yet.
+ * ---------------------------------------------------------------------- */
+
+.empty {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  color: var(--color-text-lo);
+  font-size: var(--text-sm);
+}
+
+/* ---------------------------------------------------------------------- *
+ * Toast — brief confirmation after an action (purchase logged, edit sent).
+ * ---------------------------------------------------------------------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--nav-height, 64px) + var(--space-4));
+  transform: translateX(-50%);
+  background: var(--color-ink);
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-text-hi);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: 12px 20px;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-card);
+  z-index: 60;
+  animation: toast-in var(--duration-base) var(--ease-standard);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}

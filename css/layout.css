@@ -1,0 +1,148 @@
+/* ==========================================================================
+   Layout — page shell and screen scaffolding. Mobile-first: the app is a
+   single column that fills the viewport; on wider screens it stays phone-
+   width and centers, since this is designed to be used on a phone at lunch.
+   ========================================================================== */
+
+:root {
+  --nav-height: 64px;
+  --app-max-width: 480px;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+}
+
+.app-shell {
+  width: 100%;
+  max-width: var(--app-max-width);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-ink);
+  position: relative;
+}
+
+@media (min-width: 540px) {
+  .app-shell {
+    min-height: 92vh;
+    margin: var(--space-6) 0;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+  }
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-2);
+}
+
+.app-header__id {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.app-header__brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-lg);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.screen {
+  flex: 1;
+  padding: var(--space-2) var(--space-4) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  overflow-y: auto;
+}
+
+.screen__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Bottom tab navigation, persistent across Today / Menu / Admin */
+
+.nav {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  height: var(--nav-height);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  background: var(--color-ink-2);
+  border-top: 1px solid var(--color-line);
+}
+
+.nav__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-lo);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.nav__item--active {
+  color: var(--color-mustard);
+}
+
+.nav__icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 12px;
+}
+
+/* Centered full-height layout used only by the login screen */
+
+.login-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-5);
+}
+
+.login-screen__mark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-3xl);
+  line-height: 0.92;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.login-screen__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
