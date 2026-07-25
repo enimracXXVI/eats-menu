@@ -29,7 +29,14 @@ export function renderLogin(onLoggedIn) {
         submitBtn.setAttribute("disabled", "true");
         submitBtn.textContent = "Checking…";
 
-        const user = await api.findUserByUsername(username);
+        let user;
+        try {
+          user = await api.findUserByUsername(username);
+        } catch {
+          submitBtn.removeAttribute("disabled");
+          submitBtn.textContent = "Log in";
+          return;
+        }
 
         if (!user) {
           errorSlot.replaceChildren(el("p", { className: "field__error" }, "User not authorised."));

@@ -62,7 +62,7 @@ function buildLoggedRows(purchases, currency, onDeleted) {
           className: "btn btn--icon",
           "aria-label": `Delete ${p.item_name}`,
           onClick: async () => {
-            await api.deletePurchase(p.purchase_id);
+            await api.deletePurchase(p.purchase_id, state.user.user_id);
             showToast("Purchase removed");
             onDeleted();
           },
