@@ -61,6 +61,15 @@ export function openSheet(title, bodyNode) {
   return close;
 }
 
+// The recurring "label + horizontal rule" section header used to separate
+// stacked groups within a screen (e.g. "Tap what you got" / "Logged today").
+export function sectionHeader(text) {
+  return el("div", { className: "section-divider" }, [
+    el("span", { className: "section-divider__tag" }, text),
+    el("span", { className: "section-divider__rule" }),
+  ]);
+}
+
 export function showToast(message) {
   const toast = el("div", { className: "toast" }, message);
   document.body.append(toast);

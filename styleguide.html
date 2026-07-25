@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Canteen Tally — Style Guide</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/styleguide.css" />
+</head>
+<body>
+  <main class="sg-page">
+
+    <div class="sg-intro">
+      <span class="eyebrow">Canteen Tally — reference</span>
+      <h1>Style guide</h1>
+      <p>
+        Every component the app uses, in its real markup and real CSS — nothing on this page is
+        redrawn or approximated. Hover or tap anything below and you're seeing its actual
+        <code>:hover</code> / <code>:active</code> state. If a button looks different somewhere in
+        the app, that's a bug against this page, not a second style.
+      </p>
+    </div>
+
+    <!-- ===================== COLOR ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">Color</h2>
+
+      <div class="sg-block">
+        <span class="sg-block__label">Ground</span>
+        <div class="sg-row">
+          <div class="sg-swatch">
+            <div class="sg-swatch__block" style="background:#0e120d"></div>
+            <div class="sg-swatch__meta"><code>--color-backdrop</code><br>#0e120d — page background, behind the app frame</div>
+          </div>
+          <div class="sg-swatch">
+            <div class="sg-swatch__block" style="background:#1b2420"></div>
+            <div class="sg-swatch__meta"><code>--color-ink</code><br>#1b2420 — app shell, sheet background</div>
+          </div>
+          <div class="sg-swatch">
+            <div class="sg-swatch__block" style="background:#212c26"></div>
+            <div class="sg-swatch__meta"><code>--color-ink-2</code><br>#212c26 — header, list rows</div>
+          </div>
+          <div class="sg-swatch">
+            <div class="sg-swatch__block" style="background:#283630"></div>
+            <div class="sg-swatch__meta"><code>--color-ink-3</code><br>#283630 — nested cards, user-row</div>
+          </div>
+          <div class="sg-swatch">
+            <div class="sg-swatch__block" style="background:#f3eee1"></div>
+            <div class="sg-swatch__meta"><code>--color-paper</code><br>#f3eee1 — the ticket card only</div>
+          </div>
+        </div>
+        <p class="sg-block__note">Ground colors are chosen, not neutral by default: a bottle-green-black instead of pure grey/black, so the paper ticket reads as an object sitting on a counter.</p>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label">Brand accent</span>
+        <div class="sg-row">
+          <div class="sg-swatch">
+            <div class="sg-swatch__block" style="background:#d2622c"></div>
+            <div class="sg-swatch__meta"><code>--color-paprika</code><br>#d2622c — primary buttons, cart bar</div>
+          </div>
+          <div class="sg-swatch">
+            <div class="sg-swatch__block" style="background:#e27a45"></div>
+            <div class="sg-swatch__meta"><code>--color-paprika-strong</code><br>#e27a45 — primary button hover</div>
+          </div>
+          <div class="sg-swatch">
+            <div class="sg-swatch__block" style="background:#e7b23e"></div>
+            <div class="sg-swatch__meta"><code>--color-mustard</code><br>#e7b23e — active nav item, section tags, focus ring</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label">Semantic (state) — separate from the brand accent, never reused for decoration</span>
+        <div class="sg-row">
+          <div class="sg-swatch">
+            <div class="sg-swatch__block" style="background:#6f9962"></div>
+            <div class="sg-swatch__meta"><code>--color-safe</code><br>#6f9962 — under budget, Approve</div>
+          </div>
+          <div class="sg-swatch">
+            <div class="sg-swatch__block" style="background:#e7b23e"></div>
+            <div class="sg-swatch__meta"><code>--color-warning</code><br>#e7b23e — approaching the daily limit</div>
+          </div>
+          <div class="sg-swatch">
+            <div class="sg-swatch__block" style="background:#c1402f"></div>
+            <div class="sg-swatch__meta"><code>--color-critical</code><br>#c1402f — over budget, Reject</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== TYPE ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">Type</h2>
+
+      <div class="sg-type-row">
+        <span class="sg-type-row__sample sg-type-row__sample--display">Canteen Tally</span>
+        <span class="sg-type-row__meta">Big Shoulders 800 — screen titles, nav icons, sheet titles, section tags. Always uppercase.</span>
+      </div>
+      <div class="sg-type-row">
+        <span class="sg-type-row__sample sg-type-row__sample--body">Tap what you got, and it lands in your cart.</span>
+        <span class="sg-type-row__meta">IBM Plex Sans 400/600 — every label, button and paragraph.</span>
+      </div>
+      <div class="sg-type-row">
+        <span class="sg-type-row__sample sg-type-row__sample--mono u-tabular">€4.70 / €7.00</span>
+        <span class="sg-type-row__meta">IBM Plex Mono 400/500/600 — every price, timestamp and count. Always <code>.u-tabular</code>.</span>
+      </div>
+    </section>
+
+    <!-- ===================== BUTTONS ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">Buttons</h2>
+      <p class="sg-block__note">Exactly one modifier per button. Never mix — a screen must never show two different styles for the same kind of action (e.g. two different "confirm" looks).</p>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.btn .btn--primary</code> — the single commit action on a screen (Log purchase, Save settings, Continue)</span>
+        <div class="sg-demo sg-row">
+          <button class="btn btn--primary">Continue</button>
+          <button class="btn btn--primary" disabled>Continue</button>
+        </div>
+        <p class="sg-block__note">Default → hover lightens to <code>--color-paprika-strong</code> → active scales to 97%. Disabled drops to 40% opacity.</p>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.btn .btn--outline</code> — secondary / neutral action (+ Propose a new item)</span>
+        <div class="sg-demo sg-row"><button class="btn btn--outline">+ Propose a new item</button></div>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.btn .btn--safe</code> / <code>.btn .btn--critical</code> — Admin approvals only</span>
+        <div class="sg-demo sg-row">
+          <button class="btn btn--safe">Approve</button>
+          <button class="btn btn--critical">Reject</button>
+        </div>
+        <p class="sg-block__note">Outline by default; hover fills solid. This fill-on-hover is reserved for approve/reject — no other button fills on hover.</p>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.btn--icon</code> — small circular icon-only button (Menu screen: propose-edit pencil · Header: log out)</span>
+        <div class="sg-demo sg-row">
+          <button class="btn btn--icon" aria-label="Edit">✎</button>
+          <button class="btn btn--icon" aria-label="Remove">✕</button>
+        </div>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.btn--block</code> full width · <code>.btn--sm</code> compact, used inside the cart bar</span>
+        <div class="sg-demo sg-demo--narrow">
+          <button class="btn btn--primary btn--block">Log purchase — €4.70</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== BADGES / CHIPS / LABELS ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">Badges, chips &amp; labels</h2>
+
+      <div class="sg-row">
+        <div class="sg-block">
+          <span class="sg-block__label"><code>.badge .badge--pending</code> — Menu screen, on an item with a queued edit</span>
+          <div class="sg-demo"><span class="badge badge--pending">Pending</span></div>
+        </div>
+        <div class="sg-block">
+          <span class="sg-block__label"><code>.badge .badge--superuser</code> — Admin › Users</span>
+          <div class="sg-demo"><span class="badge badge--superuser">Superuser</span></div>
+        </div>
+        <div class="sg-block">
+          <span class="sg-block__label"><code>.chip</code> — header, the logged-in user's name</span>
+          <div class="sg-demo"><span class="chip">Marco</span></div>
+        </div>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.eyebrow</code> — small standalone label (Login screen wordmark)</span>
+        <div class="sg-demo"><span class="eyebrow">Canteen Tally</span></div>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.section-divider</code> — label + rule, heads every stacked section (Today, Menu, Admin)</span>
+        <div class="sg-demo">
+          <div class="section-divider">
+            <span class="section-divider__tag">Logged today</span>
+            <span class="section-divider__rule"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== TICKET + GAUGE ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">Ticket &amp; gauge</h2>
+      <p class="sg-block__note">One ticket per Today screen. The gauge fill color is the only thing that changes across the three budget states — the layout never does.</p>
+
+      <div class="sg-row">
+        <div class="sg-demo sg-demo--narrow">
+          <span class="sg-block__label">Safe — <code>.ticket__remaining</code></span>
+          <div class="ticket">
+            <span class="ticket__remaining-label">Remaining today</span>
+            <span class="ticket__remaining">€2.30 left</span>
+            <div class="ticket__perforation"></div>
+            <div class="gauge">
+              <div class="gauge__track"><div class="gauge__fill" style="width:67%"></div></div>
+              <div class="gauge__marks"><span>€0.00</span><span>€7.00</span></div>
+            </div>
+            <p class="ticket__gauge-caption"><strong>€4.70</strong> of €7.00</p>
+          </div>
+        </div>
+
+        <div class="sg-demo sg-demo--narrow">
+          <span class="sg-block__label">Warning — <code>.ticket__remaining--warning</code> / <code>.gauge__fill--warning</code></span>
+          <div class="ticket">
+            <span class="ticket__remaining-label">Remaining today</span>
+            <span class="ticket__remaining ticket__remaining--warning">€0.60 left</span>
+            <div class="ticket__perforation"></div>
+            <div class="gauge">
+              <div class="gauge__track"><div class="gauge__fill gauge__fill--warning" style="width:91%"></div></div>
+              <div class="gauge__marks"><span>€0.00</span><span>€7.00</span></div>
+            </div>
+            <p class="ticket__gauge-caption"><strong>€6.40</strong> of €7.00</p>
+          </div>
+        </div>
+
+        <div class="sg-demo sg-demo--narrow">
+          <span class="sg-block__label">Over — <code>.ticket__remaining--critical</code> / <code>.gauge__fill--over</code></span>
+          <div class="ticket">
+            <span class="ticket__remaining-label">Remaining today</span>
+            <span class="ticket__remaining ticket__remaining--critical">€1.20 over</span>
+            <div class="ticket__perforation"></div>
+            <div class="gauge">
+              <div class="gauge__track"><div class="gauge__fill gauge__fill--over" style="width:100%"></div></div>
+              <div class="gauge__marks"><span>€0.00</span><span>€7.00</span></div>
+            </div>
+            <p class="ticket__gauge-caption"><strong>€8.20</strong> of €7.00</p>
+          </div>
+        </div>
+      </div>
+      <p class="sg-block__note">The fill's <code>width</code> is the one deliberate exception to "no inline styles" — a continuously variable percentage has no sensible class, so it's set as a computed <code>style="width:…%"</code> from JS. Everything else on this page and in the app is class-only.</p>
+    </section>
+
+    <!-- ===================== ROWS ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">Rows</h2>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.rows &gt; .row</code> — Today: menu items (tappable) and logged purchases (static)</span>
+        <div class="sg-demo sg-demo--narrow">
+          <div class="rows">
+            <div class="row row--tappable">
+              <span class="row__title">Pasta with tomato sauce</span>
+              <span class="row__meta">Main course</span>
+              <span class="row__price u-tabular">€3.20</span>
+            </div>
+            <div class="row row--tappable row--selected">
+              <span class="row__title">Coffee</span>
+              <span class="row__meta">Drink</span>
+              <span class="row__price u-tabular">€1.00</span>
+            </div>
+          </div>
+        </div>
+        <p class="sg-block__note"><code>.row--tappable</code> darkens on hover/active. <code>.row--selected</code> marks an item already in the cart — paprika left edge, tap again to remove.</p>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.menu-card</code> — Menu screen. <code>.menu-card--pending</code> when a proposed edit is queued</span>
+        <div class="sg-demo sg-demo--narrow sg-stack-sm">
+          <div class="menu-card">
+            <div class="menu-card__main">
+              <span class="menu-card__name">Mixed salad</span>
+              <span class="menu-card__category">Side</span>
+            </div>
+            <span class="menu-card__price u-tabular">€2.80</span>
+            <button class="btn btn--icon" aria-label="Propose edit">✎</button>
+          </div>
+          <div class="menu-card menu-card--pending">
+            <div class="menu-card__main">
+              <span class="menu-card__name">Prosciutto and mozzarella sandwich</span>
+              <span class="badge badge--pending">Pending</span>
+            </div>
+            <span class="menu-card__price u-tabular"><span class="menu-card__price-old">€3.50</span>€3.80</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.approval-row</code> — Admin › Waiting on your approval</span>
+        <div class="sg-demo sg-demo--narrow">
+          <div class="approval-row">
+            <span class="approval-row__who">Giulia proposes</span>
+            <span class="approval-row__diff">Prosciutto and mozzarella sandwich <span class="approval-row__num">€3.80</span></span>
+            <div class="approval-row__actions">
+              <button class="btn btn--safe">Approve</button>
+              <button class="btn btn--critical">Reject</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== CART BAR ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">Cart bar</h2>
+      <span class="sg-block__label"><code>.cart-bar</code> — Today screen only, appears once the cart has ≥1 item, sits just above the bottom nav</span>
+      <div class="sg-demo sg-demo--narrow">
+        <div class="cart-bar">
+          <span class="cart-bar__summary">3 items · <span class="u-tabular">€4.70</span></span>
+          <button class="btn btn--primary btn--sm">Review</button>
+        </div>
+      </div>
+      <p class="sg-block__note">Tapping anywhere on the bar (or Review) opens the cart sheet below.</p>
+    </section>
+
+    <!-- ===================== SHEET ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">Sheet</h2>
+      <span class="sg-block__label"><code>.sheet</code> — slides up from the bottom for the cart review and the propose-edit form. Shown here unrolled (normally covers the screen over a <code>.sheet-backdrop</code>)</span>
+      <div class="sg-demo sg-demo--narrow">
+        <div class="sheet">
+          <div class="sheet__handle"></div>
+          <h2 class="sheet__title">Your cart</h2>
+          <div class="rows">
+            <div class="row">
+              <span class="row__title">Pasta with tomato sauce</span>
+              <span class="row__price u-tabular">€3.20</span>
+              <button class="btn btn--icon" aria-label="Remove">✕</button>
+            </div>
+          </div>
+          <p class="ticket__gauge-caption">Subtotal: <span class="u-tabular">€3.20</span></p>
+          <div class="sheet__actions"><button class="btn btn--primary">Log purchase — €3.20</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== FORMS ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">Forms &amp; toggles</h2>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.field</code> — Login, propose-edit sheet, Admin settings</span>
+        <div class="sg-demo sg-demo--narrow">
+          <div class="field">
+            <label class="field__label">Your name</label>
+            <input class="field__input" type="text" placeholder="e.g. marco" />
+            <p class="field__error">We don't recognize that name — check with your superuser.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.switch</code> / <code>.switch--on</code> — Admin › Users (superuser + active toggles)</span>
+        <div class="sg-demo sg-row sg-row--center">
+          <button class="switch" role="switch" aria-checked="false" aria-label="Off example"></button>
+          <button class="switch switch--on" role="switch" aria-checked="true" aria-label="On example"></button>
+        </div>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.user-row</code> — one friend's admin controls</span>
+        <div class="sg-demo sg-demo--narrow">
+          <div class="user-row">
+            <div class="user-row__name">Carmine <span class="badge badge--superuser">Superuser</span></div>
+            <div class="user-row__toggles">
+              <div class="toggle-row"><span class="toggle-row__label">Superuser</span><button class="switch switch--on" role="switch" aria-checked="true"></button></div>
+              <div class="toggle-row"><span class="toggle-row__label">Active</span><button class="switch switch--on" role="switch" aria-checked="true"></button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.card</code> — Admin section container (Users, Settings)</span>
+        <div class="sg-demo sg-demo--narrow">
+          <div class="card">
+            <h2 class="card__title">Settings</h2>
+            <div class="field"><label class="field__label">Daily allowance</label><input class="field__input" type="number" value="7.00" /></div>
+            <button class="btn btn--primary btn--block">Save settings</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== NAV / MISC ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">Navigation &amp; misc states</h2>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.nav</code> — bottom tab bar, persistent on every logged-in screen. <code>.nav__item--active</code> is admin-gated: only rendered for superusers</span>
+        <div class="sg-demo sg-demo--narrow sg-demo--flush">
+          <nav class="nav">
+            <button class="nav__item nav__item--active"><span class="nav__icon">T</span><span>Today</span></button>
+            <button class="nav__item"><span class="nav__icon">M</span><span>Menu</span></button>
+            <button class="nav__item"><span class="nav__icon">A</span><span>Admin</span></button>
+          </nav>
+        </div>
+      </div>
+
+      <div class="sg-row">
+        <div class="sg-block">
+          <span class="sg-block__label"><code>.empty</code> — any list with nothing in it</span>
+          <div class="sg-demo sg-demo--narrow"><p class="empty">Nothing logged yet today — tap something above.</p></div>
+        </div>
+        <div class="sg-block">
+          <span class="sg-block__label"><code>.toast</code> — brief confirmation after Log purchase / Submit / Approve</span>
+          <div class="sg-demo sg-demo--narrow sg-toast-frame">
+            <div class="toast">Purchase logged</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

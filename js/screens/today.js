@@ -1,4 +1,4 @@
-import { el, fmtMoney, fmtTime, openSheet, showToast } from "../dom.js";
+import { el, fmtMoney, fmtTime, openSheet, showToast, sectionHeader } from "../dom.js";
 import { api } from "../api.js";
 import { state, addToCart, removeFromCart, clearCart, cartTotal } from "../state.js";
 
@@ -204,12 +204,9 @@ export async function renderToday(container, rerender) {
 
   container.replaceChildren(
     buildTicket(spent, settings.daily_allowance, settings.currency),
+    el("div", { className: "screen__section" }, [sectionHeader("Tap what you got"), menuRowsSlot]),
     el("div", { className: "screen__section" }, [
-      el("span", { className: "eyebrow" }, "Tap what you got"),
-      menuRowsSlot,
-    ]),
-    el("div", { className: "screen__section" }, [
-      el("span", { className: "eyebrow" }, "Logged today"),
+      sectionHeader("Logged today"),
       buildLoggedRows(purchases, settings.currency),
     ]),
     cartBarSlot

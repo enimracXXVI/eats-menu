@@ -139,12 +139,7 @@
   color: var(--color-mustard);
 }
 
-.badge--muted {
-  background: var(--color-ink-3);
-  color: var(--color-text-lo);
-}
-
-/* pill used for the per-user daily allowance readout in the top bar */
+/* pill used for the logged-in user's name in the header */
 .chip {
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
@@ -674,6 +669,48 @@
 .switch--on::after {
   transform: translateX(16px);
   background: var(--color-safe-strong);
+}
+
+/* ---------------------------------------------------------------------- *
+ * User row — one friend's admin controls (Admin > Users). Two lines:
+ * identity on top, labeled toggles below, since a single .row line is too
+ * cramped for a name plus two switches on a phone width.
+ * ---------------------------------------------------------------------- */
+
+.user-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--color-ink-3);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+}
+
+.user-row__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.user-row__toggles {
+  display: flex;
+  gap: var(--space-6);
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.toggle-row__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-lo);
 }
 
 /* ---------------------------------------------------------------------- *
