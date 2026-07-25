@@ -39,11 +39,14 @@ function doPost(e) {
 }
 
 function handleAction(action, payload) {
+  ensureSpreadsheetTimeZone();
+
   const handlers = {
     findUserByUsername: () => findUserByUsername(payload.username),
     getUsers: () => getUsers(),
     addUser: () => addUser(payload),
     updateUser: () => updateUser(payload.userId, payload.patch),
+    deleteUser: () => deleteUser(payload.userId, payload.requestedBy),
     getMenu: () => getMenu(payload),
     getPendingEdits: () => getPendingEdits(payload.status || "pending"),
     getSettings: () => getSettings(),
@@ -92,6 +95,7 @@ function handleAction(action, payload) {
 const WRITE_ACTIONS = new Set([
   "addUser",
   "updateUser",
+  "deleteUser",
   "updateSettings",
   "logPurchases",
   "deletePurchase",
@@ -181,23 +185,34 @@ function nextId(rows, key) {
   return rows.reduce((max, row) => Math.max(max, Number(row[key]) || 0), 0) + 1;
 }
 
-// The Apps Script PROJECT has its own timezone setting, separate from the
-// bound spreadsheet's timezone (File > Settings, in the sheet itself) — they
-// can silently differ. Sheets auto-coerces our date-shaped strings into real
-// Date cells using the SPREADSHEET's timezone (see normalizeCell above), so
-// formatting must use that same timezone too, or the two conversions don't
-// cancel out and every timestamp comes back shifted by whatever the gap
-// between the two timezones happens to be.
-function timeZone() {
-  return SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+// Both the Apps Script PROJECT's own timezone setting and the bound
+// spreadsheet's timezone (File > Settings, in the sheet itself) are
+// independently configurable and can each default to something that isn't
+// where you actually are — Google doesn't require either to match your real
+// location. That mismatch is why the displayed time flipped from ahead to
+// behind between two attempts at picking one of those ambient settings:
+// neither was reliably correct. Pinning the real zone explicitly, and
+// forcing the spreadsheet to match it, removes the ambiguity entirely —
+// Sheets' own auto-coercion of a date-shaped string into a real Date cell
+// always uses the spreadsheet's setting, so once that setting IS this
+// constant, our own formatting and Sheets' coercion always agree.
+//
+// Change this if the canteen is ever not in Italy.
+const LOCAL_TIMEZONE = "Europe/Rome";
+
+function ensureSpreadsheetTimeZone() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (ss.getSpreadsheetTimeZone() !== LOCAL_TIMEZONE) {
+    ss.setSpreadsheetTimeZone(LOCAL_TIMEZONE);
+  }
 }
 
 function isoDate(date) {
-  return Utilities.formatDate(date, timeZone(), "yyyy-MM-dd");
+  return Utilities.formatDate(date, LOCAL_TIMEZONE, "yyyy-MM-dd");
 }
 
 function isoTimestamp(date) {
-  return Utilities.formatDate(date, timeZone(), "yyyy-MM-dd'T'HH:mm");
+  return Utilities.formatDate(date, LOCAL_TIMEZONE, "yyyy-MM-dd'T'HH:mm");
 }
 
 // ---------------------------------------------------------------------------
@@ -237,6 +252,21 @@ function updateUser(userId, patch) {
   if (!user) return null;
   updateRow(SHEET.USERS, user._row, patch);
   return Object.assign({}, user, patch);
+}
+
+// Superuser-only, re-checked here rather than trusted from the client — and
+// a superuser can't delete their own account, so nobody can accidentally
+// lock everyone (including themselves) out of Admin.
+function deleteUser(userId, requestedBy) {
+  const users = readTable(SHEET.USERS);
+  const requester = users.find((u) => u.user_id === requestedBy);
+  if (!requester || !requester.is_superuser) throw new Error("Only a superuser can delete a user.");
+  if (userId === requestedBy) throw new Error("You can't delete your own account.");
+
+  const user = users.find((u) => u.user_id === userId);
+  if (!user) return false;
+  deleteRow(SHEET.USERS, user._row);
+  return true;
 }
 
 // ---------------------------------------------------------------------------

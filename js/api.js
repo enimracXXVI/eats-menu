@@ -41,6 +41,7 @@ export const api = {
   getUsers: () => call("getUsers"),
   addUser: ({ username, display_name }) => call("addUser", { username, display_name }),
   updateUser: (userId, patch) => call("updateUser", { userId, patch }),
+  deleteUser: (userId, requestedBy) => call("deleteUser", { userId, requestedBy }),
 
   getMenu: (opts = {}) => call("getMenu", opts),
 

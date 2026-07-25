@@ -26,12 +26,20 @@ body {
 
 /* Fixed to exactly the viewport height (not min-height) and clipped, so
    the header and nav can never scroll out of view — .screen is the only
-   region that scrolls, no matter how long its content gets. */
+   region that scrolls, no matter how long its content gets.
+   svh (small viewport height — the height WITH mobile browser chrome
+   visible), not dvh (dynamic — recomputed as chrome shows/hides): dvh can
+   lag its own recalculation right as address-bar/toolbar animations
+   settle, which is exactly when a fixed-height shell computed a beat too
+   early ends up taller than what's actually visible, pushing the cart
+   dock and nav down behind the last bit of scrolled content. svh is a
+   fixed floor — always fits, never overlaps — at the cost of a sliver of
+   unused space on the (common) occasions the chrome auto-hides. */
 .app-shell {
   width: 100%;
   max-width: var(--app-max-width);
   height: 100vh;
-  height: 100dvh;
+  height: 100svh;
   display: flex;
   flex-direction: column;
   background: var(--color-ink);
@@ -42,7 +50,7 @@ body {
 @media (min-width: 540px) {
   .app-shell {
     height: 92vh;
-    height: 92dvh;
+    height: 92svh;
     margin: var(--space-6) 0;
     border-radius: var(--radius-lg);
     box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.7);

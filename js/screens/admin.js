@@ -69,12 +69,34 @@ function buildUserSwitch(label, isOn, onToggle) {
 }
 
 function buildUsersCard(users, rerender) {
-  const rows = users.map((user) =>
-    el("div", { className: "user-row" }, [
-      el("div", { className: "user-row__name" }, [
-        user.display_name,
-        user.is_superuser ? el("span", { className: "badge badge--superuser" }, "Superuser") : null,
-      ]),
+  const rows = users.map((user) => {
+    const isSelf = user.user_id === state.user.user_id;
+
+    return el("div", { className: "user-row" }, [
+      el(
+        "div",
+        { className: "user-row__name" },
+        [
+          user.display_name,
+          user.is_superuser ? el("span", { className: "badge badge--superuser" }, "Superuser") : null,
+          isSelf
+            ? null
+            : el(
+                "button",
+                {
+                  className: "btn btn--icon u-push-right",
+                  "aria-label": `Delete ${user.display_name}`,
+                  onClick: async () => {
+                    if (!confirm(`Delete ${user.display_name}? This can't be undone.`)) return;
+                    await api.deleteUser(user.user_id, state.user.user_id);
+                    showToast("User deleted");
+                    rerender();
+                  },
+                },
+                "✕"
+              ),
+        ].filter(Boolean)
+      ),
       el("div", { className: "user-row__toggles" }, [
         el("div", { className: "toggle-row" }, [
           el("span", { className: "toggle-row__label" }, "Superuser"),
@@ -91,8 +113,8 @@ function buildUsersCard(users, rerender) {
           }),
         ]),
       ]),
-    ])
-  );
+    ]);
+  });
 
   const usernameInput = el("input", { className: "field__input", type: "text", placeholder: "username" });
   const displayNameInput = el("input", { className: "field__input", type: "text", placeholder: "Display name" });

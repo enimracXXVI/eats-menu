@@ -85,6 +85,10 @@ svg {
   font-variant-numeric: tabular-nums;
 }
 
+.u-push-right {
+  margin-left: auto;
+}
+
 .u-visually-hidden {
   position: absolute;
   width: 1px;
