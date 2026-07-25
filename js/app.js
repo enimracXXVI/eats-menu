@@ -38,7 +38,7 @@ function buildNav(activePath) {
 function buildHeader() {
   return el("header", { className: "app-header" }, [
     el("div", { className: "app-header__id" }, [
-      el("span", { className: "app-header__brand" }, "Canteen Tally"),
+      el("img", { className: "brand-logo brand-logo--header", src: "assets/icons/logo.svg", alt: "Canteen Tally" }),
     ]),
     el("div", { className: "app-header__actions" }, [
       el("span", { className: "chip" }, state.user.display_name),

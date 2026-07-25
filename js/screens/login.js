@@ -3,19 +3,19 @@ import { api } from "../api.js";
 import { login } from "../state.js";
 
 export function renderLogin(onLoggedIn) {
-  let errorNode = null;
-
   const input = el("input", {
     className: "field__input",
     type: "text",
     name: "username",
-    placeholder: "e.g. marco",
+    id: "username",
     autocomplete: "username",
     autocapitalize: "off",
     autofocus: true,
   });
 
   const errorSlot = el("div", {});
+
+  const submitBtn = el("button", { className: "btn btn--primary btn--block", type: "submit" }, "Log in");
 
   const form = el(
     "form",
@@ -32,14 +32,9 @@ export function renderLogin(onLoggedIn) {
         const user = await api.findUserByUsername(username);
 
         if (!user) {
-          errorNode = el(
-            "p",
-            { className: "field__error" },
-            "We don't recognize that name — check with your superuser."
-          );
-          errorSlot.replaceChildren(errorNode);
+          errorSlot.replaceChildren(el("p", { className: "field__error" }, "User not authorised."));
           submitBtn.removeAttribute("disabled");
-          submitBtn.textContent = "Continue";
+          submitBtn.textContent = "Log in";
           return;
         }
 
@@ -49,23 +44,17 @@ export function renderLogin(onLoggedIn) {
     },
     [
       el("div", { className: "field" }, [
-        el("label", { className: "field__label", for: "username" }, "Your name"),
+        el("label", { className: "field__label", for: "username" }, "Username"),
         input,
         errorSlot,
       ]),
+      submitBtn,
     ]
   );
 
-  const submitBtn = el("button", { className: "btn btn--primary btn--block", type: "submit" }, "Continue");
-  form.append(submitBtn);
-  input.id = "username";
-
   return el("div", { className: "login-screen" }, [
-    el("div", { className: "screen__section" }, [
-      el("span", { className: "eyebrow" }, "Canteen Tally"),
-      el("h1", { className: "login-screen__mark" }, "What's your name?"),
-      el("p", {}, "No password — just tell us who you are. Ask your superuser to add you if you're not on the list yet."),
-    ]),
+    el("img", { className: "brand-logo brand-logo--login", src: "assets/icons/logo.svg", alt: "Canteen Tally" }),
+    el("h1", { className: "login-screen__mark" }, "Log in"),
     form,
   ]);
 }

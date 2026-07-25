@@ -14,7 +14,7 @@
   <main class="sg-page">
 
     <div class="sg-intro">
-      <span class="eyebrow">Canteen Tally — reference</span>
+      <span class="sg-eyebrow">Canteen Tally — reference</span>
       <h1>Style guide</h1>
       <p>
         Every component the app uses, in its real markup and real CSS — nothing on this page is
@@ -23,6 +23,12 @@
         the app, that's a bug against this page, not a second style.
       </p>
     </div>
+
+    <!-- ===================== LOGO ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">Logo</h2>
+      <span class="sg-block__label"><code>.brand-logo</code> — <code>assets/icons/logo.svg</code>, referenced from disk, never inlined. <code>--header</code> (28px tall) in the app header, <code>--login</code> (48px tall) above the login form. There is no text wordmark anywhere in the app.</span>
+    </section>
 
     <!-- ===================== COLOR ===================== -->
     <section class="sg-section">
@@ -97,7 +103,7 @@
       <h2 class="sg-section__title">Type</h2>
 
       <div class="sg-type-row">
-        <span class="sg-type-row__sample sg-type-row__sample--display">Canteen Tally</span>
+        <span class="sg-type-row__sample sg-type-row__sample--display">Log in</span>
         <span class="sg-type-row__meta">Big Shoulders 800 — screen titles, nav icons, sheet titles, section tags. Always uppercase.</span>
       </div>
       <div class="sg-type-row">
@@ -174,8 +180,8 @@
       </div>
 
       <div class="sg-block">
-        <span class="sg-block__label"><code>.eyebrow</code> — small standalone label (Login screen wordmark)</span>
-        <div class="sg-demo"><span class="eyebrow">Canteen Tally</span></div>
+        <span class="sg-block__label"><code>.qty-badge</code> — Menu screen, on an item you've already added to the cart</span>
+        <div class="sg-demo"><span class="qty-badge">2</span></div>
       </div>
 
       <div class="sg-block">
@@ -245,51 +251,47 @@
       <h2 class="sg-section__title">Rows</h2>
 
       <div class="sg-block">
-        <span class="sg-block__label"><code>.rows &gt; .row</code> — Today: menu items (tappable) and logged purchases (static)</span>
+        <span class="sg-block__label"><code>.rows &gt; .row</code> — Today's logged purchases (with delete) and Menu's catalog (tappable, adds to cart)</span>
         <div class="sg-demo sg-demo--narrow">
           <div class="rows">
+            <div class="row">
+              <span class="row__title">2× Fruit</span>
+              <span class="row__meta u-tabular">12:34</span>
+              <span class="row__price u-tabular">€1.00</span>
+              <button class="btn btn--icon" aria-label="Delete">✕</button>
+            </div>
+          </div>
+        </div>
+        <p class="sg-block__note">Today's logged rows (above): plain <code>.row</code>, quantity folded into the name as "2× Fruit", delete button always present — it's today's own purchase, always editable.</p>
+        <div class="sg-demo sg-demo--narrow sg-stack-sm">
+          <div class="rows">
             <div class="row row--tappable">
-              <span class="row__title">Pasta with tomato sauce</span>
-              <span class="row__meta">Main course</span>
-              <span class="row__price u-tabular">€3.20</span>
+              <span class="row__title">Croissant</span>
+              <span class="row__price u-tabular">€1.40</span>
+              <button class="btn btn--icon" aria-label="Propose edit">✎</button>
             </div>
             <div class="row row--tappable row--selected">
-              <span class="row__title">Coffee</span>
-              <span class="row__meta">Drink</span>
-              <span class="row__price u-tabular">€1.00</span>
+              <span class="row__title">Fruit</span>
+              <span class="qty-badge">2</span>
+              <span class="row__price u-tabular">€0.50</span>
+              <button class="btn btn--icon" aria-label="Propose edit">✎</button>
             </div>
-          </div>
-        </div>
-        <p class="sg-block__note"><code>.row--tappable</code> darkens on hover/active. <code>.row--selected</code> marks an item already in the cart — paprika left edge, tap again to remove.</p>
-      </div>
-
-      <div class="sg-block">
-        <span class="sg-block__label"><code>.menu-card</code> — Menu screen. <code>.menu-card--pending</code> when a proposed edit is queued</span>
-        <div class="sg-demo sg-demo--narrow sg-stack-sm">
-          <div class="menu-card">
-            <div class="menu-card__main">
-              <span class="menu-card__name">Mixed salad</span>
-              <span class="menu-card__category">Side</span>
-            </div>
-            <span class="menu-card__price u-tabular">€2.80</span>
-            <button class="btn btn--icon" aria-label="Propose edit">✎</button>
-          </div>
-          <div class="menu-card menu-card--pending">
-            <div class="menu-card__main">
-              <span class="menu-card__name">Prosciutto and mozzarella sandwich</span>
+            <div class="row row--tappable">
+              <span class="row__title">Ready Sandwich</span>
               <span class="badge badge--pending">Pending</span>
+              <span class="row__price u-tabular">€3.50</span>
             </div>
-            <span class="menu-card__price u-tabular"><span class="menu-card__price-old">€3.50</span>€3.80</span>
           </div>
         </div>
+        <p class="sg-block__note">Menu's catalog rows (above): <code>.row--tappable</code> darkens on hover/active and adds one unit to the cart. <code>.row--selected</code> + <code>.qty-badge</code> together mark an item already in the cart. <code>.badge--pending</code> replaces the edit button while a change is queued — a superuser never sees this state, their edits apply immediately.</p>
       </div>
 
       <div class="sg-block">
-        <span class="sg-block__label"><code>.approval-row</code> — Admin › Waiting on your approval</span>
+        <span class="sg-block__label"><code>.approval-row</code> — Admin › Waiting on your approval (only ever shows non-superuser proposals)</span>
         <div class="sg-demo sg-demo--narrow">
           <div class="approval-row">
-            <span class="approval-row__who">Giulia proposes</span>
-            <span class="approval-row__diff">Prosciutto and mozzarella sandwich <span class="approval-row__num">€3.80</span></span>
+            <span class="approval-row__who">giulia proposes</span>
+            <span class="approval-row__diff">Ready Sandwich <span class="approval-row__num">€3.80</span></span>
             <div class="approval-row__actions">
               <button class="btn btn--safe">Approve</button>
               <button class="btn btn--critical">Reject</button>
@@ -302,7 +304,7 @@
     <!-- ===================== CART BAR ===================== -->
     <section class="sg-section">
       <h2 class="sg-section__title">Cart bar</h2>
-      <span class="sg-block__label"><code>.cart-bar</code> — Today screen only, appears once the cart has ≥1 item, sits just above the bottom nav</span>
+      <span class="sg-block__label"><code>.cart-bar</code> — persists across Today and Menu, appears once the cart has ≥1 item, sits just above the bottom nav</span>
       <div class="sg-demo sg-demo--narrow">
         <div class="cart-bar">
           <span class="cart-bar__summary">3 items · <span class="u-tabular">€4.70</span></span>
@@ -318,19 +320,25 @@
       <span class="sg-block__label"><code>.sheet</code> — slides up from the bottom for the cart review and the propose-edit form. Shown here unrolled (normally covers the screen over a <code>.sheet-backdrop</code>)</span>
       <div class="sg-demo sg-demo--narrow">
         <div class="sheet">
-          <div class="sheet__handle"></div>
+          <button class="sheet__handle" aria-label="Close"></button>
           <h2 class="sheet__title">Your cart</h2>
           <div class="rows">
             <div class="row">
-              <span class="row__title">Pasta with tomato sauce</span>
-              <span class="row__price u-tabular">€3.20</span>
-              <button class="btn btn--icon" aria-label="Remove">✕</button>
+              <span class="row__title">Fruit</span>
+              <div class="qty-stepper">
+                <button class="btn btn--icon" aria-label="Remove one">−</button>
+                <span class="qty-stepper__value">2</span>
+                <button class="btn btn--icon" aria-label="Add one more">+</button>
+              </div>
+              <span class="row__price u-tabular">€1.00</span>
+              <button class="btn btn--icon" aria-label="Remove from cart">✕</button>
             </div>
           </div>
-          <p class="ticket__gauge-caption">Subtotal: <span class="u-tabular">€3.20</span></p>
-          <div class="sheet__actions"><button class="btn btn--primary">Log purchase — €3.20</button></div>
+          <p class="ticket__gauge-caption">Subtotal: <span class="u-tabular">€1.00</span></p>
+          <div class="sheet__actions"><button class="btn btn--primary">Log purchase — €1.00</button></div>
         </div>
       </div>
+      <p class="sg-block__note">The handle is a real button — tapping it closes the sheet, same as tapping the backdrop. The phone/browser back button also closes an open sheet instead of navigating the app away, via a pushed history entry that's popped on close.</p>
     </section>
 
     <!-- ===================== FORMS ===================== -->
@@ -338,12 +346,12 @@
       <h2 class="sg-section__title">Forms &amp; toggles</h2>
 
       <div class="sg-block">
-        <span class="sg-block__label"><code>.field</code> — Login, propose-edit sheet, Admin settings</span>
+        <span class="sg-block__label"><code>.field</code> — Login, propose-edit sheet, Admin settings. No placeholder text when a label is already visible — the label alone says what's expected.</span>
         <div class="sg-demo sg-demo--narrow">
           <div class="field">
-            <label class="field__label">Your name</label>
-            <input class="field__input" type="text" placeholder="e.g. marco" />
-            <p class="field__error">We don't recognize that name — check with your superuser.</p>
+            <label class="field__label">Username</label>
+            <input class="field__input" type="text" />
+            <p class="field__error">User not authorised.</p>
           </div>
         </div>
       </div>
@@ -370,11 +378,17 @@
       </div>
 
       <div class="sg-block">
-        <span class="sg-block__label"><code>.card</code> — Admin section container (Users, Settings)</span>
+        <span class="sg-block__label"><code>.card</code> — Admin section container (Users, Settings). Currency is a <code>&lt;select&gt;</code>, never free text — the symbol shown everywhere else depends on picking one of these seven.</span>
         <div class="sg-demo sg-demo--narrow">
           <div class="card">
             <h2 class="card__title">Settings</h2>
             <div class="field"><label class="field__label">Daily allowance</label><input class="field__input" type="number" value="7.00" /></div>
+            <div class="field">
+              <label class="field__label">Currency</label>
+              <select class="field__input">
+                <option>EUR</option><option>GBP</option><option>USD</option><option>CAD</option><option>AUD</option><option>BRL</option><option>COP</option>
+              </select>
+            </div>
             <button class="btn btn--primary btn--block">Save settings</button>
           </div>
         </div>
@@ -399,7 +413,7 @@
       <div class="sg-row">
         <div class="sg-block">
           <span class="sg-block__label"><code>.empty</code> — any list with nothing in it</span>
-          <div class="sg-demo sg-demo--narrow"><p class="empty">Nothing logged yet today — tap something above.</p></div>
+          <div class="sg-demo sg-demo--narrow"><p class="empty">Nothing logged yet today — add something from Menu.</p></div>
         </div>
         <div class="sg-block">
           <span class="sg-block__label"><code>.toast</code> — brief confirmation after Log purchase / Submit / Approve</span>

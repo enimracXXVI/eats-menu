@@ -1,14 +1,14 @@
 // Data-access layer. Every read/write in the app goes through here.
 //
 // Today this is backed by localStorage + the seed data in mock-data.js, so
-// the whole app is usable before the Google Sheet backend exists. When the
-// Apps Script Web App is ready, only the bodies of these functions change
-// (to `fetch()` calls) — screens never talk to storage directly, so nothing
+// the whole app is usable before the Apps Script backend exists. When that
+// backend is deployed, only the bodies of these functions change (to
+// `fetch()` calls) — screens never talk to storage directly, so nothing
 // above this file should need to change.
 
 import { seedData } from "./mock-data.js";
 
-const STORAGE_KEY = "eats-menu-db-v1";
+const STORAGE_KEY = "eats-menu-db-v2";
 const LATENCY_MS = 120; // small delay so it behaves like a real network call
 
 function load() {
@@ -33,8 +33,14 @@ function delay(value) {
   return new Promise((resolve) => setTimeout(() => resolve(value), LATENCY_MS));
 }
 
-function nextId(rows, key) {
-  return rows.reduce((max, row) => Math.max(max, row[key]), 0) + 1;
+// Ids in the sheet are prefixed and zero-padded (U00001, M00001, E00001,
+// P00001) rather than plain numbers — this mirrors that scheme.
+function nextId(rows, key, prefix) {
+  const max = rows.reduce((m, row) => {
+    const n = parseInt(String(row[key]).slice(prefix.length), 10);
+    return Number.isNaN(n) ? m : Math.max(m, n);
+  }, 0);
+  return `${prefix}${String(max + 1).padStart(5, "0")}`;
 }
 
 function todayISODate() {
@@ -57,7 +63,7 @@ export const api = {
 
   async addUser({ username, display_name }) {
     const user = {
-      user_id: nextId(db.users, "user_id"),
+      user_id: nextId(db.users, "user_id", "U"),
       username: username.trim().toLowerCase(),
       display_name: display_name.trim(),
       is_superuser: false,
@@ -103,16 +109,19 @@ export const api = {
     return delay(rows.map((p) => ({ ...p })));
   },
 
-  async logPurchases(userId, cartItems) {
+  async logPurchases(user, cartItems) {
     const date = todayISODate();
     const timestamp = new Date().toISOString().slice(0, 16);
     const created = cartItems.map((item) => {
       const purchase = {
-        purchase_id: nextId(db.purchases, "purchase_id") + db.purchases.length,
-        user_id: userId,
+        purchase_id: nextId(db.purchases, "purchase_id", "P"),
+        user_id: user.user_id,
+        username: user.username,
         item_id: item.item_id,
         item_name: item.name,
-        price_paid: item.price,
+        units: item.units,
+        unit_price: item.price,
+        price_paid: Math.round(item.units * item.price * 100) / 100,
         date,
         timestamp,
       };
@@ -123,47 +132,67 @@ export const api = {
     return delay(created);
   },
 
-  async proposeMenuEdit(edit) {
+  async deletePurchase(purchaseId) {
+    db.purchases = db.purchases.filter((p) => p.purchase_id !== purchaseId);
+    save(db);
+    return delay(true);
+  },
+
+  // Regular users' edits go to the queue. A superuser's own edit is applied
+  // immediately — being superuser would be pointless if they still had to
+  // wait on themselves for approval.
+  async proposeMenuEdit(edit, proposer) {
     const row = {
-      edit_id: nextId(db.pendingEdits, "edit_id"),
+      edit_id: nextId(db.pendingEdits, "edit_id", "E"),
       status: "pending",
-      reviewed_by: null,
-      reviewed_at: null,
+      reviewed_by: "",
+      reviewed_at: "",
       proposed_at: new Date().toISOString().slice(0, 16),
+      user_id: proposer.user_id,
+      proposed_by: proposer.username,
       ...edit,
     };
     db.pendingEdits.push(row);
+
+    if (proposer.is_superuser) {
+      applyEdit(row);
+      row.status = "approved";
+      row.reviewed_by = proposer.username;
+      row.reviewed_at = row.proposed_at;
+    }
+
     save(db);
     return delay({ ...row });
   },
 
-  async reviewEdit(editId, { approve, reviewedBy }) {
+  async reviewEdit(editId, { approve, reviewer }) {
     const edit = db.pendingEdits.find((e) => e.edit_id === editId);
     if (!edit) return delay(null);
 
     edit.status = approve ? "approved" : "rejected";
-    edit.reviewed_by = reviewedBy;
+    edit.reviewed_by = reviewer.username;
     edit.reviewed_at = new Date().toISOString().slice(0, 16);
 
-    if (approve) {
-      if (edit.type === "new_item") {
-        db.menu.push({
-          item_id: nextId(db.menu, "item_id"),
-          name: edit.proposed_name,
-          category: edit.proposed_category || "Other",
-          price: edit.proposed_price,
-          active: true,
-        });
-      } else if (edit.type === "price_change") {
-        const item = db.menu.find((m) => m.item_id === edit.item_id);
-        if (item) item.price = edit.proposed_price;
-      } else if (edit.type === "remove_item") {
-        const item = db.menu.find((m) => m.item_id === edit.item_id);
-        if (item) item.active = false;
-      }
-    }
+    if (approve) applyEdit(edit);
 
     save(db);
     return delay({ ...edit });
   },
 };
+
+function applyEdit(edit) {
+  if (edit.type === "new_item") {
+    db.menu.push({
+      item_id: nextId(db.menu, "item_id", "M"),
+      name: edit.proposed_name,
+      price: edit.proposed_price,
+      active: true,
+    });
+  } else if (edit.type === "price_change") {
+    const item = db.menu.find((m) => m.item_id === edit.item_id);
+    if (item) item.price = edit.proposed_price;
+  } else if (edit.type === "remove_item") {
+    const item = db.menu.find((m) => m.item_id === edit.item_id);
+    if (item) item.active = false;
+  }
+}

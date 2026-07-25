@@ -18,6 +18,14 @@ body {
   gap: var(--space-8);
 }
 
+.sg-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-lo);
+}
+
 .sg-intro h1 {
   font-family: var(--font-display);
   font-weight: 800;

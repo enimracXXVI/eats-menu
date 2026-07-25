@@ -1,6 +1,7 @@
-import { el, fmtMoney, fmtTime, openSheet, showToast, sectionHeader } from "../dom.js";
+import { el, fmtMoney, fmtTime, sectionHeader, showToast } from "../dom.js";
 import { api } from "../api.js";
-import { state, addToCart, removeFromCart, clearCart, cartTotal } from "../state.js";
+import { state } from "../state.js";
+import { buildCartBar } from "../cart.js";
 
 function buildTicket(spent, allowance, currency) {
   const remaining = allowance - spent;
@@ -42,172 +43,54 @@ function buildTicket(spent, allowance, currency) {
   ]);
 }
 
-function buildMenuRows(menu, container, refreshCart) {
-  const rows = menu.map((item) => {
-    const isInCart = state.cart.some((c) => c.item_id === item.item_id);
-    return el(
-      "div",
-      {
-        className: `row row--tappable${isInCart ? " row--selected" : ""}`,
-        onClick: () => {
-          if (isInCart) {
-            removeFromCart(state.cart.findIndex((c) => c.item_id === item.item_id));
-          } else {
-            addToCart(item);
-          }
-          refreshCart();
-        },
-      },
-      [
-        el("span", { className: "row__title" }, item.name),
-        el("span", { className: "row__meta" }, item.category),
-        el("span", { className: "row__price u-tabular" }, fmtMoney(item.price)),
-      ]
-    );
-  });
-  return el("div", { className: "rows" }, rows);
-}
-
-function buildLoggedRows(purchases, currency) {
+function buildLoggedRows(purchases, currency, onDeleted) {
   if (purchases.length === 0) {
-    return el("p", { className: "empty" }, "Nothing logged yet today — tap something above.");
+    return el("p", { className: "empty" }, "Nothing logged yet today — add something from Menu.");
   }
   const rows = purchases.map((p) =>
     el("div", { className: "row" }, [
-      el("span", { className: "row__title" }, p.item_name),
+      el(
+        "span",
+        { className: "row__title" },
+        p.units > 1 ? `${p.units}× ${p.item_name}` : p.item_name
+      ),
       el("span", { className: "row__meta u-tabular" }, fmtTime(p.timestamp)),
       el("span", { className: "row__price u-tabular" }, fmtMoney(p.price_paid, currency)),
+      el(
+        "button",
+        {
+          className: "btn btn--icon",
+          "aria-label": `Delete ${p.item_name}`,
+          onClick: async () => {
+            await api.deletePurchase(p.purchase_id);
+            showToast("Purchase removed");
+            onDeleted();
+          },
+        },
+        "✕"
+      ),
     ])
   );
   return el("div", { className: "rows" }, rows);
 }
 
-function openCartSheet({ currency, onConfirm }) {
-  const list = el("div", { className: "rows" }, []);
-
-  function renderList() {
-    if (state.cart.length === 0) {
-      list.replaceChildren(el("p", { className: "empty" }, "Cart is empty."));
-      return;
-    }
-    list.replaceChildren(
-      ...state.cart.map((item, index) =>
-        el("div", { className: "row" }, [
-          el("span", { className: "row__title" }, item.name),
-          el("span", { className: "row__price u-tabular" }, fmtMoney(item.price, currency)),
-          el(
-            "button",
-            {
-              className: "btn btn--icon",
-              "aria-label": `Remove ${item.name}`,
-              onClick: () => {
-                removeFromCart(index);
-                renderList();
-                total.textContent = fmtMoney(cartTotal(), currency);
-                if (state.cart.length === 0) close();
-              },
-            },
-            "✕"
-          ),
-        ])
-      )
-    );
-  }
-
-  const total = el("span", { className: "u-tabular" }, fmtMoney(cartTotal(), currency));
-
-  const body = el("div", { className: "screen__section" }, [
-    list,
-    el("p", { className: "ticket__gauge-caption" }, ["Subtotal: ", total]),
-    el("div", { className: "sheet__actions" }, [
-      el(
-        "button",
-        {
-          className: "btn btn--primary",
-          onClick: () => {
-            onConfirm();
-            close();
-          },
-        },
-        `Log purchase — ${fmtMoney(cartTotal(), currency)}`
-      ),
-    ]),
-  ]);
-
-  renderList();
-  const close = openSheet("Your cart", body);
-}
-
 export async function renderToday(container, rerender) {
   container.replaceChildren(el("p", { className: "empty" }, "Loading…"));
 
-  const [settings, menu, purchases] = await Promise.all([
+  const [settings, purchases] = await Promise.all([
     api.getSettings(),
-    api.getMenu(),
     api.getPurchases({ userId: state.user.user_id, date: new Date().toISOString().slice(0, 10) }),
   ]);
 
   const spent = purchases.reduce((sum, p) => sum + p.price_paid, 0);
 
-  const menuRowsSlot = el("div", {});
-  function refreshMenuRows() {
-    menuRowsSlot.replaceChildren(buildMenuRows(menu, menuRowsSlot, refreshMenuRows));
-    refreshCartBar();
-  }
-
-  const cartBarSlot = el("div", {});
-  function refreshCartBar() {
-    if (state.cart.length === 0) {
-      cartBarSlot.replaceChildren();
-      return;
-    }
-    cartBarSlot.replaceChildren(
-      el(
-        "div",
-        { className: "cart-bar", onClick: openReviewSheet },
-        [
-          el("span", { className: "cart-bar__summary" }, [
-            `${state.cart.length} item${state.cart.length > 1 ? "s" : ""} · `,
-            el("span", { className: "u-tabular" }, fmtMoney(cartTotal(), settings.currency)),
-          ]),
-          el(
-            "button",
-            {
-              className: "btn btn--primary btn--sm",
-              onClick: (event) => {
-                event.stopPropagation();
-                openReviewSheet();
-              },
-            },
-            "Review"
-          ),
-        ]
-      )
-    );
-  }
-
-  function openReviewSheet() {
-    openCartSheet({
-      currency: settings.currency,
-      onConfirm: async () => {
-        const items = [...state.cart];
-        await api.logPurchases(state.user.user_id, items);
-        clearCart();
-        showToast("Purchase logged");
-        rerender();
-      },
-    });
-  }
-
-  refreshMenuRows();
-  refreshCartBar();
+  const cartBarSlot = el("div", {}, buildCartBar(settings.currency, rerender));
 
   container.replaceChildren(
     buildTicket(spent, settings.daily_allowance, settings.currency),
-    el("div", { className: "screen__section" }, [sectionHeader("Tap what you got"), menuRowsSlot]),
     el("div", { className: "screen__section" }, [
       sectionHeader("Logged today"),
-      buildLoggedRows(purchases, settings.currency),
+      buildLoggedRows(purchases, settings.currency, rerender),
     ]),
     cartBarSlot
   );

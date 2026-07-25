@@ -21,9 +21,30 @@ export function el(tag, attrs = {}, children = []) {
   return node;
 }
 
+const CURRENCY_SYMBOLS = {
+  EUR: "€",
+  GBP: "£",
+  USD: "$",
+  CAD: "CA$",
+  AUD: "A$",
+  BRL: "R$",
+  COP: "COL$",
+};
+
+export const CURRENCIES = Object.keys(CURRENCY_SYMBOLS);
+
 export function fmtMoney(value, currency = "EUR") {
-  const symbol = currency === "EUR" ? "€" : currency;
+  const symbol = CURRENCY_SYMBOLS[currency] || currency;
   return `${symbol}${Number(value).toFixed(2)}`;
+}
+
+// Keeps a price input always showing two decimals (0.00), even if the
+// user types "5" or the value was prefilled from a whole number.
+export function formatPriceOnBlur(input) {
+  input.addEventListener("blur", () => {
+    const value = parseFloat(input.value);
+    if (!Number.isNaN(value)) input.value = value.toFixed(2);
+  });
 }
 
 export function fmtTime(isoTimestamp) {
@@ -36,8 +57,13 @@ export function mount(root, node) {
 }
 
 // Bottom sheet used for the cart review and the propose-edit form.
-// Returns a close() function; the sheet also closes on backdrop tap.
+// Returns a close() function. Closes on: handle tap, backdrop tap, calling
+// close() yourself, or the phone/browser back button — a pushState marker
+// is added while the sheet is open so back closes the sheet instead of
+// navigating the app away, same as any native modal would behave.
 export function openSheet(title, bodyNode) {
+  let closed = false;
+
   const backdrop = el(
     "div",
     {
@@ -48,16 +74,34 @@ export function openSheet(title, bodyNode) {
     },
     [
       el("div", { className: "sheet" }, [
-        el("div", { className: "sheet__handle" }),
+        el("button", { className: "sheet__handle", "aria-label": "Close", onClick: () => close() }, []),
         el("h2", { className: "sheet__title" }, title),
         bodyNode,
       ]),
     ]
   );
   document.body.append(backdrop);
-  function close() {
+
+  history.pushState({ sheet: true }, "");
+  window.addEventListener("popstate", onPopState);
+
+  function onPopState() {
+    finish();
+  }
+
+  function finish() {
+    if (closed) return;
+    closed = true;
+    window.removeEventListener("popstate", onPopState);
     backdrop.remove();
   }
+
+  function close() {
+    if (closed) return;
+    finish();
+    if (history.state && history.state.sheet) history.back();
+  }
+
   return close;
 }
 

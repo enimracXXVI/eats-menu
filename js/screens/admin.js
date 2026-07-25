@@ -1,16 +1,16 @@
-import { el, fmtMoney, showToast, sectionHeader } from "../dom.js";
+import { el, fmtMoney, showToast, sectionHeader, CURRENCIES, formatPriceOnBlur } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
 
 function buildApprovals(pendingEdits, users, rerender) {
-  const usersById = new Map(users.map((u) => [u.user_id, u]));
+  const usersByUsername = new Map(users.map((u) => [u.username, u]));
 
   if (pendingEdits.length === 0) {
     return el("p", { className: "empty" }, "No changes waiting on you.");
   }
 
   const rows = pendingEdits.map((edit) => {
-    const proposer = usersById.get(edit.proposed_by);
+    const proposer = usersByUsername.get(edit.proposed_by);
     const label =
       edit.type === "new_item"
         ? `New item — ${edit.proposed_name}`
@@ -32,13 +32,17 @@ function buildApprovals(pendingEdits, users, rerender) {
           ]);
 
     async function decide(approve) {
-      await api.reviewEdit(edit.edit_id, { approve, reviewedBy: state.user.user_id });
+      await api.reviewEdit(edit.edit_id, { approve, reviewer: state.user });
       showToast(approve ? "Approved" : "Rejected");
       rerender();
     }
 
     return el("div", { className: "approval-row" }, [
-      el("span", { className: "approval-row__who" }, `${proposer ? proposer.display_name : "Unknown"} proposes`),
+      el(
+        "span",
+        { className: "approval-row__who" },
+        `${proposer ? proposer.display_name : edit.proposed_by} proposes`
+      ),
       diff,
       el("div", { className: "approval-row__actions" }, [
         el("button", { className: "btn btn--safe", onClick: () => decide(true) }, "Approve"),
@@ -97,7 +101,7 @@ function buildUsersCard(users, rerender) {
     el("h2", { className: "card__title" }, "Users"),
     el("div", { className: "screen__section" }, rows),
     el("div", { className: "field" }, [
-      el("label", { className: "field__label" }, "Add a friend"),
+      el("label", { className: "field__label" }, "New user"),
       usernameInput,
       displayNameInput,
     ]),
@@ -121,15 +125,18 @@ function buildSettingsCard(settings, rerender) {
   const allowanceInput = el("input", {
     className: "field__input",
     type: "number",
-    step: "0.10",
+    step: "0.01",
     min: "0",
-    value: settings.daily_allowance,
+    value: Number(settings.daily_allowance).toFixed(2),
   });
-  const currencyInput = el("input", {
-    className: "field__input",
-    type: "text",
-    value: settings.currency,
-  });
+  formatPriceOnBlur(allowanceInput);
+  const currencyInput = el(
+    "select",
+    { className: "field__input" },
+    CURRENCIES.map((code) =>
+      el("option", { value: code, selected: code === settings.currency || null }, code)
+    )
+  );
 
   return el("div", { className: "card" }, [
     el("h2", { className: "card__title" }, "Settings"),

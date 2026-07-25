@@ -14,24 +14,28 @@ body {
   justify-content: center;
 }
 
+/* Fixed to exactly the viewport height (not min-height) and clipped, so
+   the header and nav can never scroll out of view — .screen is the only
+   region that scrolls, no matter how long its content gets. */
 .app-shell {
   width: 100%;
   max-width: var(--app-max-width);
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--color-ink);
   position: relative;
+  overflow: hidden;
 }
 
 @media (min-width: 540px) {
   .app-shell {
-    min-height: 92vh;
+    height: 92vh;
+    height: 92dvh;
     margin: var(--space-6) 0;
     border-radius: var(--radius-lg);
     box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.7);
-    overflow: hidden;
   }
 }
 
@@ -49,12 +53,20 @@ body {
   gap: var(--space-2);
 }
 
-.app-header__brand {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: var(--text-lg);
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
+/* Logo — assets/icons/logo.svg. Sized per context via modifiers rather
+   than inline width/height, so both spots stay in sync from one place. */
+.brand-logo {
+  display: block;
+}
+
+.brand-logo--header {
+  height: 28px;
+  width: auto;
+}
+
+.brand-logo--login {
+  height: 48px;
+  width: auto;
 }
 
 .app-header__actions {
@@ -65,11 +77,16 @@ body {
 
 .screen {
   flex: 1;
+  min-height: 0;
   padding: var(--space-2) var(--space-4) var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
   overflow-y: auto;
+  /* Reserves the scrollbar's width whether or not content is tall enough to
+     need it, so Today/Menu/Admin never differ in usable width depending on
+     which one happens to scroll. */
+  scrollbar-gutter: stable;
 }
 
 .screen__section {

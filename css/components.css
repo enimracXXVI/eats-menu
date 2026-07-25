@@ -155,14 +155,6 @@
  * Eyebrow / section label — small uppercase mono label above a group
  * ---------------------------------------------------------------------- */
 
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-text-lo);
-}
-
 .section-divider {
   display: flex;
   align-items: center;
@@ -369,67 +361,6 @@
 }
 
 /* ---------------------------------------------------------------------- *
- * Menu card — richer than a plain row: used on the Menu screen where each
- * item also carries a category label and an edit action.
- * ---------------------------------------------------------------------- */
-
-.menu-card {
-  background: var(--color-ink-2);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  padding: 12px 13px;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.menu-card--pending {
-  border-style: dashed;
-  border-color: var(--color-paprika);
-  background: rgba(210, 98, 44, 0.07);
-}
-
-.menu-card__main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.menu-card__name {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.menu-card__category {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-paprika-strong);
-}
-
-.menu-card__price {
-  font-family: var(--font-mono);
-  font-size: var(--text-base);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.menu-card__price-old {
-  color: var(--color-text-lo);
-  text-decoration: line-through;
-  font-size: var(--text-2xs);
-  margin-right: 4px;
-}
-
-/* ---------------------------------------------------------------------- *
  * Approval row — a pending edit awaiting a superuser's decision (Admin).
  * ---------------------------------------------------------------------- */
 
@@ -472,6 +403,40 @@
 
 .approval-row__actions .btn {
   flex: 1;
+}
+
+/* ---------------------------------------------------------------------- *
+ * Quantity — the stepper inside the cart sheet, and the small count badge
+ * on a menu row that's already in the cart.
+ * ---------------------------------------------------------------------- */
+
+.qty-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.qty-stepper__value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  min-width: 16px;
+  text-align: center;
+}
+
+.qty-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-paprika);
+  color: var(--color-paper);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
 /* ---------------------------------------------------------------------- *
@@ -564,12 +529,28 @@
   }
 }
 
+/* A real button, sized to a proper tap target (44px+), even though only
+   a thin 36x4 bar is drawn — the padding is the hit area, not the visual. */
 .sheet__handle {
+  display: block;
+  width: 100%;
+  padding: 14px 0 10px;
+  margin: -14px 0 0;
+}
+
+.sheet__handle::before {
+  content: "";
+  display: block;
   width: 36px;
   height: 4px;
+  margin: 0 auto;
   border-radius: var(--radius-pill);
   background: var(--color-line-strong);
-  margin: 0 auto;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.sheet__handle:hover::before {
+  background: var(--color-text-lo);
 }
 
 .sheet__title {
