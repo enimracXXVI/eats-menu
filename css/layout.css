@@ -93,10 +93,24 @@ body {
   gap: var(--space-2);
 }
 
+/* .screen fills all remaining height below the header (nav and the cart
+   dock are position:absolute overlays now, not flex-flow siblings — see
+   below — so nothing else competes with .screen for that space). Its own
+   bottom padding is what keeps scrolled content from disappearing under
+   those overlays; --nav-height is always reserved, and .screen--with-dock
+   reserves extra room for the floating cart bar on top of that. This is
+   deliberately NOT "give .screen flex:1 and let the dock/nav take their
+   own share of the flex column" — that depended on every browser
+   recalculating the flex distribution in lockstep with the dock's
+   contents changing asynchronously, and real-world mobile Firefox did not:
+   the tail end of a scrolled list could render behind the dock/nav instead
+   of the layout properly leaving room for them. Fixed overlays + padding
+   can't have that class of bug — the padding is static CSS, not something
+   that depends on reflow timing at all. */
 .screen {
   flex: 1;
   min-height: 0;
-  padding: var(--space-2) var(--space-4) var(--space-6);
+  padding: var(--space-2) var(--space-4) calc(var(--nav-height) + var(--space-6));
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
@@ -107,16 +121,24 @@ body {
   scrollbar-gutter: stable;
 }
 
+.screen--with-dock {
+  padding-bottom: calc(var(--nav-height) + var(--space-6) + 84px);
+}
+
 .screen__section {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
-/* Bottom tab navigation, persistent across Today / Menu / Admin */
+/* Bottom tab navigation, persistent across Today / Menu / Admin. A fixed
+   overlay anchored to .app-shell (position:relative, overflow:hidden — see
+   above), not a flex-flow sibling of .screen. */
 
 .nav {
-  position: sticky;
+  position: absolute;
+  left: 0;
+  right: 0;
   bottom: 0;
   display: flex;
   height: var(--nav-height);

@@ -97,7 +97,11 @@ async function render() {
   clearCartChangeListeners();
 
   const { header, remainingChip } = buildHeader();
-  const screenEl = el("div", { className: "screen" }, [el("p", { className: "empty" }, "Loading…")]);
+  const screenEl = el(
+    "div",
+    { className: `screen${tab.showCartDock ? " screen--with-dock" : ""}` },
+    [el("p", { className: "empty" }, "Loading…")]
+  );
   const cartDockEl = tab.showCartDock ? el("div", { className: "cart-dock" }, []) : null;
 
   const shell = el(

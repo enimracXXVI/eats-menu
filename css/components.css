@@ -479,7 +479,14 @@
   display: none;
 }
 
+/* Fixed overlay anchored to .app-shell, sitting directly above .nav —
+   see the long comment on .screen in layout.css for why this is an
+   absolute overlay and not a flex-flow sibling. */
 .cart-dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--nav-height);
   padding: 0 var(--space-4) var(--space-3);
 }
 
