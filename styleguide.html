@@ -320,7 +320,7 @@
       <span class="sg-block__label"><code>.sheet</code> — slides up from the bottom for the cart review and the propose-edit form. Shown here unrolled (normally covers the screen over a <code>.sheet-backdrop</code>)</span>
       <div class="sg-demo sg-demo--narrow">
         <div class="sheet">
-          <button class="sheet__handle" aria-label="Close"></button>
+          <div class="sheet__handle" aria-hidden="true"></div>
           <h2 class="sheet__title">Your cart</h2>
           <div class="rows">
             <div class="row">
@@ -338,7 +338,7 @@
           <div class="sheet__actions"><button class="btn btn--primary">Log purchase — €1.00</button></div>
         </div>
       </div>
-      <p class="sg-block__note">The handle is a real button — tapping it closes the sheet, same as tapping the backdrop. The phone/browser back button also closes an open sheet instead of navigating the app away, via a pushed history entry that's popped on close.</p>
+      <p class="sg-block__note">The handle is a real drag surface, not a button — a tap does nothing; only dragging it down past ~35% of the sheet's height (or a fast flick, however short) dismisses it, tracking the finger 1:1 with no lag. Anything short of that eases back open. Tapping the backdrop or the phone/browser back button also closes the sheet, via a pushed history entry that's popped on close.</p>
     </section>
 
     <!-- ===================== FORMS ===================== -->

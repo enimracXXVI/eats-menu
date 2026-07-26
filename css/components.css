@@ -573,13 +573,35 @@
   }
 }
 
-/* A real button, sized to a proper tap target (44px+), even though only
-   a thin 36x4 bar is drawn — the padding is the hit area, not the visual. */
+/* .sheet has no transition of its own — while a drag is live, transform is
+   set directly per pointermove and must track the finger with zero lag.
+   .sheet--settling is added only for the two moments that DO animate: the
+   snap back open, and sliding fully closed. Same split for the backdrop's
+   opacity fade. */
+.sheet--settling {
+  transition: transform calc(var(--duration-base) * 1.3) var(--ease-standard);
+}
+
+.sheet-backdrop--settling {
+  transition: opacity calc(var(--duration-base) * 1.3) var(--ease-standard);
+}
+
+/* Sized to a proper touch target (44px+) even though only a thin 36x4 bar
+   is drawn — the padding is the drag surface, not the visual. This is a
+   drag handle, not a button: it does nothing on a plain tap, only on a
+   real drag (see attachSheetDrag in dom.js). touch-action:none stops the
+   browser's own scroll/pull gestures from competing with the drag. */
 .sheet__handle {
   display: block;
   width: 100%;
   padding: 14px 0 10px;
   margin: -14px 0 0;
+  touch-action: none;
+  cursor: grab;
+}
+
+.sheet__handle:active {
+  cursor: grabbing;
 }
 
 .sheet__handle::before {

@@ -68,12 +68,21 @@ export function mount(root, node) {
 }
 
 // Bottom sheet used for the cart review and the propose-edit form.
-// Returns a close() function. Closes on: handle tap, backdrop tap, calling
-// close() yourself, or the phone/browser back button — a pushState marker
-// is added while the sheet is open so back closes the sheet instead of
-// navigating the app away, same as any native modal would behave.
+// Returns a close() function. Closes on: a real drag of the handle past
+// the dismiss threshold (see attachSheetDrag — a tap alone does nothing),
+// backdrop tap, calling close() yourself, or the phone/browser back
+// button — a pushState marker is added while the sheet is open so back
+// closes the sheet instead of navigating the app away, same as any native
+// modal would behave.
 export function openSheet(title, bodyNode) {
   let closed = false;
+
+  const handle = el("div", { className: "sheet__handle", "aria-hidden": "true" }, []);
+  const sheetEl = el("div", { className: "sheet" }, [
+    handle,
+    el("h2", { className: "sheet__title" }, title),
+    bodyNode,
+  ]);
 
   const backdrop = el(
     "div",
@@ -83,13 +92,7 @@ export function openSheet(title, bodyNode) {
         if (event.target === backdrop) close();
       },
     },
-    [
-      el("div", { className: "sheet" }, [
-        el("button", { className: "sheet__handle", "aria-label": "Close", onClick: () => close() }, []),
-        el("h2", { className: "sheet__title" }, title),
-        bodyNode,
-      ]),
-    ]
+    [sheetEl]
   );
   document.body.append(backdrop);
 
@@ -113,7 +116,77 @@ export function openSheet(title, bodyNode) {
     if (history.state && history.state.sheet) history.back();
   }
 
+  attachSheetDrag(handle, sheetEl, backdrop, close);
+
   return close;
+}
+
+// Real drag-to-dismiss, not a tap target: the sheet tracks the pointer
+// 1:1 while dragging (no transition during the drag itself — a
+// transitioned drag lags behind the finger instead of feeling physically
+// attached). On release, dragging far or fast enough finishes the
+// dismissal in the same direction it was already moving; anything short
+// of that eases back open. A plain tap (near-zero distance, released
+// immediately) never crosses either threshold, so it does nothing —
+// there is no tap-to-close anymore.
+function attachSheetDrag(handle, sheetEl, backdrop, close) {
+  const DISMISS_DISTANCE_RATIO = 0.35; // dragged past 35% of the sheet's own height
+  const DISMISS_VELOCITY = 0.5; // or flicked at 0.5px/ms+, however short the distance
+
+  let dragging = false;
+  let startY = 0;
+  let startTime = 0;
+  let deltaY = 0;
+  let sheetHeight = 0;
+
+  function onPointerDown(event) {
+    dragging = true;
+    startY = event.clientY;
+    startTime = performance.now();
+    sheetHeight = sheetEl.getBoundingClientRect().height;
+    sheetEl.classList.remove("sheet--settling");
+    backdrop.classList.remove("sheet-backdrop--settling");
+    handle.setPointerCapture(event.pointerId);
+  }
+
+  function onPointerMove(event) {
+    if (!dragging) return;
+    deltaY = Math.max(0, event.clientY - startY);
+    sheetEl.style.transform = `translateY(${deltaY}px)`;
+    backdrop.style.opacity = String(Math.max(0.15, 1 - deltaY / sheetHeight));
+  }
+
+  function settle(shouldClose) {
+    sheetEl.classList.add("sheet--settling");
+    backdrop.classList.add("sheet-backdrop--settling");
+
+    if (shouldClose) {
+      sheetEl.style.transform = "translateY(100%)";
+      backdrop.style.opacity = "0";
+      const finishClose = () => close();
+      sheetEl.addEventListener("transitionend", finishClose, { once: true });
+      setTimeout(finishClose, 300); // in case transitionend never fires (e.g. reduced motion)
+    } else {
+      sheetEl.style.transform = "";
+      backdrop.style.opacity = "";
+    }
+  }
+
+  function onPointerUp(event) {
+    if (!dragging) return;
+    dragging = false;
+    handle.releasePointerCapture(event.pointerId);
+
+    const elapsed = Math.max(1, performance.now() - startTime);
+    const velocity = deltaY / elapsed;
+    settle(deltaY > sheetHeight * DISMISS_DISTANCE_RATIO || velocity > DISMISS_VELOCITY);
+    deltaY = 0;
+  }
+
+  handle.addEventListener("pointerdown", onPointerDown);
+  handle.addEventListener("pointermove", onPointerMove);
+  handle.addEventListener("pointerup", onPointerUp);
+  handle.addEventListener("pointercancel", onPointerUp);
 }
 
 // The recurring "label + horizontal rule" section header used to separate
