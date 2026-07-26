@@ -288,9 +288,25 @@ export const REFRESH_ICON_SVG =
   '<path d="M3 12a9 9 0 0 1 15.3-6.5L21 8"/><path d="M21 3v5h-5"/>' +
   '<path d="M21 12a9 9 0 0 1-15.3 6.5L3 16"/><path d="M3 21v-5h5"/></svg>';
 
+// Outline vs filled star, swapped based on favorited state — same
+// currentColor approach as the other icons, no emoji.
+const STAR_PATH = "M12 3l2.6 5.6 6.1.6-4.5 4.2 1.3 6-5.5-3.1-5.5 3.1 1.3-6-4.5-4.2 6.1-.6z";
+export const STAR_ICON_SVG_OUTLINE = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="${STAR_PATH}"/></svg>`;
+export const STAR_ICON_SVG_FILLED = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="${STAR_PATH}"/></svg>`;
+
 export function refreshButton(label, onClick) {
   const button = el("button", { className: "btn btn--icon", "aria-label": label, html: REFRESH_ICON_SVG }, []);
-  onBusyClick(button, null, onClick);
+  button.addEventListener("click", async () => {
+    if (button.disabled) return;
+    button.disabled = true;
+    button.classList.add("is-spinning");
+    try {
+      await onClick();
+    } finally {
+      button.disabled = false;
+      button.classList.remove("is-spinning");
+    }
+  });
   return button;
 }
 

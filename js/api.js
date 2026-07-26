@@ -49,6 +49,9 @@ export const api = {
   proposeMenuEdit: (edit, proposer) => call("proposeMenuEdit", { edit, proposer }),
   reviewEdit: (editId, { approve, reviewer }) => call("reviewEdit", { editId, approve, reviewer }),
 
+  addFavorite: (userId, itemId) => call("addFavorite", { userId, itemId }),
+  removeFavorite: (userId, itemId) => call("removeFavorite", { userId, itemId }),
+
   getSettings: () => call("getSettings"),
   updateSettings: (patch) => call("updateSettings", patch),
 

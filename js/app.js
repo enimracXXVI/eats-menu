@@ -143,7 +143,24 @@ async function render() {
   function paint(bundle) {
     updateRemainingChip(remainingChip, bundle);
     if (cartDockEl) mountCartDock(cartDockEl, bundle.settings.currency, onPurchaseLogged);
-    return tab.render(screenEl, () => render(), bundle);
+    return tab.render(screenEl, () => render(), bundle, refreshInPlace);
+  }
+
+  // For a screen's own refresh button: refetches and repaints screenEl's
+  // content once the fresh bundle lands, without the surrounding mount()
+  // that a full render() does — that mount happens synchronously, so it
+  // would tear down and replace the very button the user just clicked (mid
+  // spin animation, still awaiting this call) before the browser ever gets
+  // a chance to paint that spin at all. Leaving the current DOM alone
+  // in the meantime is also just correct: nothing has changed yet.
+  async function refreshInPlace() {
+    const bundle = await tab.fetchBundle({
+      userId: state.user.user_id,
+      date: new Date().toISOString().slice(0, 10),
+    });
+    bundleCache.set(tab.path, bundle);
+    if (currentPath() !== tab.path) return;
+    await paint(bundle);
   }
 
   if (cached) await paint(cached);

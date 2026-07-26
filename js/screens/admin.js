@@ -194,12 +194,14 @@ function buildSettingsCard(settings, rerender) {
   ]);
 }
 
-export function renderAdmin(container, rerender, bundle) {
+// `refreshInPlace` is used only by the section's own refresh button — see
+// app.js for why it's not just `rerender`.
+export function renderAdmin(container, rerender, bundle, refreshInPlace) {
   const { pendingEdits, users, menu, settings } = bundle;
 
   container.replaceChildren(
     el("div", { className: "screen__section" }, [
-      sectionHeader("Waiting on your approval", refreshButton("Refresh", rerender)),
+      sectionHeader("Waiting on your approval", refreshButton("Refresh", refreshInPlace)),
       buildApprovals(pendingEdits, users, menu, settings.currency, rerender),
     ]),
     buildUsersCard(users, rerender),

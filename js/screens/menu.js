@@ -13,6 +13,8 @@ import {
   editNameNode,
   TRASH_ICON_SVG,
   refreshButton,
+  STAR_ICON_SVG_OUTLINE,
+  STAR_ICON_SVG_FILLED,
 } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
@@ -162,11 +164,29 @@ function buildQtyStepper(item, cartLine, ui) {
   ]);
 }
 
+function buildStarButton(item, favoriteIds, onToggleFavorite) {
+  const isFavorited = favoriteIds.has(item.item_id);
+  const button = el(
+    "button",
+    {
+      className: `star-btn${isFavorited ? " star-btn--active" : ""}`,
+      "aria-label": isFavorited ? `Remove ${item.name} from favourites` : `Add ${item.name} to favourites`,
+      html: isFavorited ? STAR_ICON_SVG_FILLED : STAR_ICON_SVG_OUTLINE,
+    },
+    []
+  );
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    onToggleFavorite(item);
+  });
+  return button;
+}
+
 // `rerender` here is always the real app-level rerender (from app.js) — a
 // proposed/reviewed edit changes server data (pendingEdits, maybe the menu
-// itself), so it needs a real refetch, unlike a plain cart tap which
-// onCartChange already handles locally.
-function buildMenuRows(menu, pendingByItemId, query, currency, rerender, ui) {
+// itself), so it needs a real refetch, unlike a plain cart tap or a favorite
+// toggle, which onCartChange/refreshAll already handle locally.
+function buildMenuRows(menu, pendingByItemId, query, currency, rerender, ui, favoriteIds, onToggleFavorite) {
   const filtered = menu.filter((item) => item.name.toLowerCase().includes(query.trim().toLowerCase()));
 
   if (filtered.length === 0) {
@@ -221,6 +241,7 @@ function buildMenuRows(menu, pendingByItemId, query, currency, rerender, ui) {
         },
       },
       [
+        buildStarButton(item, favoriteIds, onToggleFavorite),
         titleNode,
         pendingBadge,
         cartLine
@@ -276,19 +297,71 @@ function watchOutsideTaps(ui) {
   document.addEventListener("pointerdown", outsideTapHandler, true);
 }
 
-// `bundle` ({menu, pendingEdits, settings}) is fetched once by app.js.
-export function renderMenu(container, rerender, bundle) {
-  const { menu, pendingEdits, settings } = bundle;
+// `bundle` ({menu, pendingEdits, favorites, settings}) is fetched once by
+// app.js. `favorites` is this user's own list of favorited item_ids —
+// scoped entirely to this screen (unlike the cart, nothing outside Menu
+// needs to know about it), so it lives as local state here rather than in
+// the shared state.js/cart.js. `refreshInPlace` is used only by the
+// section's own refresh button — see app.js for why it's not just `rerender`.
+export function renderMenu(container, rerender, bundle, refreshInPlace) {
+  const { menu, pendingEdits, favorites, settings } = bundle;
   const isSuperuser = state.user.is_superuser;
 
   const pendingByItemId = new Map(pendingEdits.filter((e) => e.item_id).map((e) => [e.item_id, e]));
   const newItemProposals = pendingEdits.filter((e) => e.type === "new_item");
+  const favoriteIds = new Set(favorites || []);
+
+  // Favoriting updates the UI immediately rather than waiting on the round
+  // trip — it's a low-stakes, instantly-reversible preference, not a
+  // purchase, so there's no reason to make a tap feel laggy. Reverted (with
+  // api.js's own error toast already shown) if the request actually fails.
+  async function toggleFavorite(item) {
+    const wasFavorited = favoriteIds.has(item.item_id);
+    if (wasFavorited) favoriteIds.delete(item.item_id);
+    else favoriteIds.add(item.item_id);
+    refreshAll();
+    try {
+      if (wasFavorited) await api.removeFavorite(state.user.user_id, item.item_id);
+      else await api.addFavorite(state.user.user_id, item.item_id);
+    } catch {
+      if (wasFavorited) favoriteIds.add(item.item_id);
+      else favoriteIds.delete(item.item_id);
+      refreshAll();
+    }
+  }
 
   let query = "";
   const rowsSlot = el("div", {});
+  const favoritesSectionSlot = el("div", {});
+
   function refreshRows() {
-    rowsSlot.replaceChildren(buildMenuRows(menu, pendingByItemId, query, settings.currency, rerender, ui));
+    rowsSlot.replaceChildren(
+      buildMenuRows(menu, pendingByItemId, query, settings.currency, rerender, ui, favoriteIds, toggleFavorite)
+    );
   }
+
+  // Sits above the main catalog — not filtered by the search query, always
+  // showing every currently-favorited item. Collapses to nothing (no empty
+  // state) the moment there are none, same as "Awaiting review" below.
+  function refreshFavorites() {
+    const favoriteItems = menu.filter((item) => favoriteIds.has(item.item_id));
+    favoritesSectionSlot.replaceChildren(
+      ...(favoriteItems.length > 0
+        ? [
+            el("div", { className: "screen__section" }, [
+              sectionHeader("Favourites"),
+              buildMenuRows(favoriteItems, pendingByItemId, "", settings.currency, rerender, ui, favoriteIds, toggleFavorite),
+            ]),
+          ]
+        : [])
+    );
+  }
+
+  function refreshAll() {
+    refreshRows();
+    refreshFavorites();
+  }
+
   const ui = {
     expandedItemId: null,
     timer: null,
@@ -299,17 +372,17 @@ export function renderMenu(container, rerender, bundle) {
     keepExpanded(itemId) {
       clearTimeout(this.timer);
       this.expandedItemId = itemId;
-      refreshRows();
+      refreshAll();
       this.timer = setTimeout(() => this.collapse(), STEPPER_IDLE_TIMEOUT_MS);
     },
     collapse() {
       clearTimeout(this.timer);
       if (this.expandedItemId == null) return;
       this.expandedItemId = null;
-      refreshRows();
+      refreshAll();
     },
   };
-  onCartChange(refreshRows);
+  onCartChange(refreshAll);
   watchOutsideTaps(ui);
 
   const searchInput = el("input", {
@@ -324,7 +397,7 @@ export function renderMenu(container, rerender, bundle) {
     },
   });
 
-  refreshRows();
+  refreshAll();
 
   // Visible to everyone, not just superusers, so who's asking for what is
   // always shown here — this isn't the approval queue, just the catalog
@@ -350,8 +423,9 @@ export function renderMenu(container, rerender, bundle) {
 
   container.replaceChildren(
     ...[
+      favoritesSectionSlot,
       el("div", { className: "screen__section" }, [
-        sectionHeader("Menu", refreshButton("Refresh menu", rerender)),
+        sectionHeader("Menu", refreshButton("Refresh menu", refreshInPlace)),
         searchInput,
         rowsSlot,
       ]),

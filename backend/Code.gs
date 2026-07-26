@@ -25,6 +25,7 @@ const SHEET = {
   PENDING_EDITS: "pendingEdits",
   PURCHASES: "purchases",
   SETTINGS: "settings",
+  FAVORITES: "favorites",
 };
 
 function doGet(e) {
@@ -56,6 +57,8 @@ function handleAction(action, payload) {
     deletePurchase: () => deletePurchase(payload.purchaseId, payload.requestedBy),
     proposeMenuEdit: () => proposeMenuEdit(payload.edit, payload.proposer),
     reviewEdit: () => reviewEdit(payload.editId, payload.approve, payload.reviewer),
+    addFavorite: () => addFavorite(payload.userId, payload.itemId),
+    removeFavorite: () => removeFavorite(payload.userId, payload.itemId),
     // Bundles — one round trip per screen instead of two or three. Apps
     // Script's per-request overhead is the dominant cost of this backend,
     // so cutting request COUNT matters far more than trimming what each one
@@ -101,6 +104,8 @@ const WRITE_ACTIONS = new Set([
   "deletePurchase",
   "proposeMenuEdit",
   "reviewEdit",
+  "addFavorite",
+  "removeFavorite",
 ]);
 
 function jsonOutput(value) {
@@ -319,6 +324,31 @@ function classifyItemEdit(edit) {
 }
 
 // ---------------------------------------------------------------------------
+// Favorites — a per-user, per-item flag with no synthetic id column: the
+// (user_id, item_id) pair is already unique and is exactly what every read/
+// write here looks up by, so an id would carry no information a real
+// lookup doesn't already have (same reasoning as the id-less settings tab).
+// ---------------------------------------------------------------------------
+
+function getFavorites(userId) {
+  return readTable(SHEET.FAVORITES)
+    .filter((f) => f.user_id === userId)
+    .map((f) => f.item_id);
+}
+
+function addFavorite(userId, itemId) {
+  const existing = readTable(SHEET.FAVORITES).find((f) => f.user_id === userId && f.item_id === itemId);
+  if (!existing) appendRow(SHEET.FAVORITES, { user_id: userId, item_id: itemId });
+  return true;
+}
+
+function removeFavorite(userId, itemId) {
+  const row = readTable(SHEET.FAVORITES).find((f) => f.user_id === userId && f.item_id === itemId);
+  if (row) deleteRow(SHEET.FAVORITES, row._row);
+  return true;
+}
+
+// ---------------------------------------------------------------------------
 // Menu edits — regular users queue for approval; a superuser's own edit
 // applies immediately (see proposeMenuEdit). reviewEdit is the only other
 // way an edit gets applied, and it re-checks the reviewer is a superuser
@@ -466,6 +496,7 @@ function getMenuBundle({ userId, date }) {
   return {
     menu: getMenu({}),
     pendingEdits: getPendingEdits("pending"),
+    favorites: getFavorites(userId),
     settings: getSettings(),
     purchases: getPurchases({ userId, date }),
   };

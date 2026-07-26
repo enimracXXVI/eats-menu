@@ -118,6 +118,21 @@
   color: var(--color-paper);
 }
 
+/* Refresh button while its request is in flight — spins the icon instead
+   of (or as well as) the usual disabled dimming, since an icon-only button
+   has no label to swap to "Refreshing…". */
+@keyframes icon-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.is-spinning svg {
+  animation: icon-spin 0.6s linear infinite;
+}
+
 /* ---------------------------------------------------------------------- *
  * Badges / chips — small state labels, never used as the accent color.
  * .badge--pending   dashed paprika  — a queued, unapproved change
@@ -493,6 +508,30 @@
   font-size: 11px;
   font-weight: 600;
   flex-shrink: 0;
+}
+
+/* The leading star toggle on a Menu row — deliberately not a .btn--icon
+   (no circular border/background): it's a plain leading glyph, not a
+   distinct action button, so it should read as lightweight as the row
+   title next to it. */
+.star-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--color-text-lo);
+  transition: color var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+.star-btn:hover {
+  color: var(--color-text-hi);
+}
+.star-btn:active {
+  transform: scale(0.88);
+}
+.star-btn--active {
+  color: var(--color-paprika);
 }
 
 /* ---------------------------------------------------------------------- *
