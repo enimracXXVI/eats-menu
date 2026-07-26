@@ -148,11 +148,6 @@
   color: var(--color-mustard);
 }
 
-.badge--muted {
-  border: 1px solid var(--color-line-strong);
-  color: var(--color-text-lo);
-}
-
 /* pill used for the logged-in user's name in the header */
 .chip {
   font-family: var(--font-mono);
@@ -396,19 +391,16 @@
   margin-right: 6px;
 }
 
-/* Summary block inside the Menu tab's inline review sheet and (via the
-   same category label + price helpers) the Admin approval list — name and
-   category on one line, price (or price diff) below. */
+/* Summary line inside the Menu tab's inline review sheet and the Admin
+   approval list — item name and its price (or price diff) on one row.
+   The category itself isn't shown here: the review sheet's title already
+   is the category, and the approval list folds it into "X proposes"
+   above instead of repeating it as a second label. */
 .edit-summary {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.edit-summary__title {
-  display: flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
 .row--tappable {
@@ -444,6 +436,13 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--color-text-lo);
+}
+
+/* The category, folded into the "X proposes" line (e.g. "MARCO PROPOSES
+   NEW ITEM") instead of a separate badge — paprika so it still stands out
+   against the muted proposer text around it. */
+.approval-row__category {
+  color: var(--color-paprika-strong);
 }
 
 .approval-row__diff {

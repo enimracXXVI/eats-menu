@@ -73,16 +73,24 @@ export function fmtTime(isoTimestamp) {
 }
 
 // Shared between the Admin approval list and the Menu tab's inline review
-// sheet, so "what kind of change is this" always reads the same way in
-// both places. `previousItem` is the item's current (pre-edit) row, when
-// known — null for a brand new item, since there's nothing to compare to.
-export function editCategoryLabel(edit, previousItem) {
-  if (edit.type === "new_item") return "New item";
-  if (edit.type === "remove_item") return "Remove";
-  if (previousItem && previousItem.name !== edit.proposed_name) {
-    return previousItem.price !== edit.proposed_price ? "Edit" : "Rename";
+// sheet, so "what kind of change is this" always reads the same way in both
+// places. This trusts edit.type as the single source of truth — the backend
+// (proposeMenuEdit's classifyItemEdit) already worked out whether an
+// existing-item edit is a rename, a price change, or both, and stored
+// exactly that in the sheet, so there's nothing left to re-derive here.
+export function editCategoryLabel(edit) {
+  switch (edit.type) {
+    case "new_item":
+      return "New item";
+    case "remove_item":
+      return "Remove";
+    case "rename":
+      return "Rename";
+    case "edit":
+      return "Edit";
+    default:
+      return "Price change";
   }
-  return "Price change";
 }
 
 // The price line for a proposed edit: struck-through previous price next to

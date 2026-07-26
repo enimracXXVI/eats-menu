@@ -287,11 +287,14 @@
       </div>
 
       <div class="sg-block">
-        <span class="sg-block__label"><code>.approval-row</code> — Admin › Waiting on your approval (only ever shows non-superuser proposals)</span>
+        <span class="sg-block__label"><code>.approval-row</code> — Admin › Waiting on your approval. The category (New item / Rename / Price change / Edit / Remove) is folded into the "X proposes" line in paprika, not a separate badge — and it's the sheet's own <code>type</code> column, classified once server-side when the edit was proposed, not re-guessed here.</span>
         <div class="sg-demo sg-demo--narrow">
           <div class="approval-row">
-            <span class="approval-row__who">giulia proposes</span>
-            <span class="approval-row__diff">Ready Sandwich <span class="approval-row__num">€3.80</span></span>
+            <span class="approval-row__who">giulia proposes <span class="approval-row__category">price change</span></span>
+            <div class="edit-summary">
+              <span class="approval-row__diff">Ready Sandwich</span>
+              <span class="row__price u-tabular"><span class="row__price-was">€3.50</span>€3.80</span>
+            </div>
             <div class="approval-row__actions">
               <button class="btn btn--safe">Approve</button>
               <button class="btn btn--critical">Reject</button>

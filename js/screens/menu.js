@@ -16,7 +16,7 @@ import { addToCart, removeCartLine, decrementCartItem, onCartChange } from "../c
 
 // How long an expanded quantity stepper stays open before collapsing back
 // to the plain count badge on its own, if it's not touched again.
-const STEPPER_IDLE_TIMEOUT_MS = 3000;
+const STEPPER_IDLE_TIMEOUT_MS = 2000;
 
 function openProposeSheet({ item, onSubmitted }) {
   const isNewItem = !item;
@@ -97,12 +97,8 @@ function openProposeSheet({ item, onSubmitted }) {
 // item — null for a brand new item proposal, where there's nothing to
 // compare against.
 function openReviewSheet(edit, currency, rerender, previousItem) {
-  const category = editCategoryLabel(edit, previousItem);
-  const priceNode = editPriceNode(
-    edit.type === "price_change" ? previousItem : null,
-    edit.proposed_price,
-    currency
-  );
+  const category = editCategoryLabel(edit);
+  const priceNode = editPriceNode(previousItem, edit.proposed_price, currency);
 
   const approveBtn = el("button", { className: "btn btn--safe" }, "Approve");
   const rejectBtn = el("button", { className: "btn btn--critical" }, "Reject");
@@ -120,13 +116,12 @@ function openReviewSheet(edit, currency, rerender, previousItem) {
     rerender();
   });
 
+  // No category badge here — the sheet's own title (below) already is the
+  // category, so repeating it next to the name would just be noise.
   const body = el("div", { className: "screen__section" }, [
     el("p", { className: "row__proposer" }, `Proposed by ${edit.proposed_by}`),
     el("div", { className: "edit-summary" }, [
-      el("div", { className: "edit-summary__title" }, [
-        el("span", { className: "row__title" }, edit.proposed_name),
-        el("span", { className: "badge badge--muted" }, category),
-      ]),
+      el("span", { className: "row__title" }, edit.proposed_name),
       priceNode,
     ]),
     el("div", { className: "sheet__actions" }, [approveBtn, rejectBtn]),

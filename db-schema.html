@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Canteen Tally — Database Schema</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/styleguide.css" />
+</head>
+<body>
+  <main class="sg-page">
+
+    <div class="sg-intro">
+      <span class="sg-eyebrow">Canteen Tally — reference</span>
+      <h1>Database schema</h1>
+      <p>
+        The Google Sheet is the database — every tab below is a real sheet, every column here is a
+        real header row. <code>backend/Code.gs</code> is the only thing that reads or writes it; this
+        page documents what it expects to find. If a column here doesn't match the sheet, or the sheet
+        has a column not listed here, that's a bug against this page.
+      </p>
+    </div>
+
+    <section class="sg-section">
+      <h2 class="sg-section__title">A few things that aren't obvious from the sheet alone</h2>
+      <div class="sg-block">
+        <p class="sg-block__note">
+          <strong>ID columns display with a letter prefix (U00001, M00002, P00003…) — that's a Sheets
+          number format on the column, not the stored value.</strong> Every ID underneath is a plain
+          integer. Code that generates or compares IDs must never expect a string prefix.
+        </p>
+        <p class="sg-block__note">
+          <strong>Timestamps are always Europe/Rome</strong>, hardcoded in Code.gs regardless of the
+          spreadsheet's own timezone setting (which Code.gs forces to match on every request) — never
+          the ambient Apps Script project timezone.
+        </p>
+        <p class="sg-block__note">
+          <strong>Booleans are real Sheets checkboxes (TRUE/FALSE)</strong>, not the strings "true"/"false".
+        </p>
+        <p class="sg-block__note">
+          <strong>Nothing is ever hard-deleted except a rejected/approved pending edit's own row.</strong>
+          A removed menu item just gets <code>active</code> set to FALSE; it stays in the sheet.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===================== USERS ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">users</h2>
+      <p class="sg-block__note">Everyone who can log in. Login is username-only — no password — so this tab is the entire authorization list.</p>
+      <div class="sg-demo sg-demo--flush">
+        <table class="sg-table">
+          <thead>
+            <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>user_id</code></td><td>number</td><td>Primary key. Assigned as max existing + 1.</td></tr>
+            <tr><td><code>username</code></td><td>string</td><td>Lowercased on write. What's typed on the login screen — matched case-insensitively.</td></tr>
+            <tr><td><code>display_name</code></td><td>string</td><td>Shown everywhere in the app instead of the username.</td></tr>
+            <tr><td><code>is_superuser</code></td><td>boolean</td><td>Superusers' own menu edits apply immediately and skip the approval queue; only a superuser can review others' pending edits or delete a user.</td></tr>
+            <tr><td><code>active</code></td><td>boolean</td><td>A deactivated user sees "This account is deactivated" instead of "User not authorised" on login — the two are deliberately different messages.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================== MENU ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">menu</h2>
+      <p class="sg-block__note">The catalog. A row is never deleted — removing an item just sets <code>active</code> to FALSE, so historical <code>purchases</code> rows referencing it stay meaningful.</p>
+      <div class="sg-demo sg-demo--flush">
+        <table class="sg-table">
+          <thead>
+            <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>item_id</code></td><td>number</td><td>Primary key. Referenced by <code>pendingEdits.item_id</code> and <code>purchases.item_id</code>.</td></tr>
+            <tr><td><code>name</code></td><td>string</td><td>Editable by anyone via a pending edit (immediate if a superuser proposes it).</td></tr>
+            <tr><td><code>price</code></td><td>number</td><td>2-decimal amount, in whatever currency <code>settings.currency</code> is currently set to — there's no per-item currency.</td></tr>
+            <tr><td><code>active</code></td><td>boolean</td><td>FALSE once removed. <code>getMenu</code> filters these out by default; Admin's bundle asks for them too, so a still-pending edit against an already-removed item can still show its last known name/price.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================== PENDING EDITS ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">pendingEdits</h2>
+      <p class="sg-block__note">Every proposed menu change, approved or not — this is both the live approval queue (<code>status = pending</code>) and its own history.</p>
+      <div class="sg-demo sg-demo--flush">
+        <table class="sg-table">
+          <thead>
+            <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>edit_id</code></td><td>number</td><td>Primary key.</td></tr>
+            <tr>
+              <td><code>type</code></td><td>string (enum)</td>
+              <td>
+                <code>new_item</code> · <code>rename</code> · <code>price_change</code> · <code>edit</code> · <code>remove_item</code><br>
+                For an edit against an existing item, this is classified server-side at proposal time
+                (<code>classifyItemEdit</code> in Code.gs), by comparing the proposed name/price against
+                the item's current row — <code>rename</code> if only the name changed, <code>price_change</code>
+                if only the price did, <code>edit</code> if both did. The client never chooses this value
+                directly; it only ever sends a generic intent, so the stored type is always an accurate
+                description of what the edit actually does, not a guess made in the UI.
+              </td>
+            </tr>
+            <tr><td><code>item_id</code></td><td>number</td><td>Blank for <code>new_item</code> — there's no existing item to reference yet.</td></tr>
+            <tr><td><code>proposed_name</code></td><td>string</td><td>The item's name after this edit applies (unchanged from its current name, if only the price changed).</td></tr>
+            <tr><td><code>proposed_price</code></td><td>number</td><td>The item's price after this edit applies (unchanged from its current price, if only the name changed, or if this is a removal — a snapshot of the price at the moment of proposal).</td></tr>
+            <tr><td><code>user_id</code></td><td>number</td><td>Proposer's <code>users.user_id</code>.</td></tr>
+            <tr><td><code>proposed_by</code></td><td>string</td><td>Proposer's username, denormalized for display without a join.</td></tr>
+            <tr><td><code>proposed_at</code></td><td>timestamp</td><td><code>YYYY-MM-DDTHH:MM</code>, Europe/Rome.</td></tr>
+            <tr>
+              <td><code>status</code></td><td>string (enum)</td>
+              <td><code>pending</code> · <code>approved</code> · <code>rejected</code><br>Set to <code>approved</code> immediately (never <code>pending</code>) when a superuser proposes their own edit.</td>
+            </tr>
+            <tr><td><code>reviewed_by</code></td><td>string</td><td>Blank until reviewed. The superuser's username who approved/rejected it (or, for a self-approved superuser edit, the proposer themself).</td></tr>
+            <tr><td><code>reviewed_at</code></td><td>timestamp</td><td>Blank until reviewed. <code>YYYY-MM-DDTHH:MM</code>, Europe/Rome.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================== PURCHASES ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">purchases</h2>
+      <p class="sg-block__note">One row per distinct item per checkout (a 3-item cart writes 3 rows in one batched call). Everything here is a snapshot at the moment of purchase — it doesn't move if the item is later renamed or repriced.</p>
+      <div class="sg-demo sg-demo--flush">
+        <table class="sg-table">
+          <thead>
+            <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>purchase_id</code></td><td>number</td><td>Primary key.</td></tr>
+            <tr><td><code>user_id</code></td><td>number</td><td>Who logged it. A purchase can only be deleted by this same user, and only on the same day (see <code>date</code>).</td></tr>
+            <tr><td><code>username</code></td><td>string</td><td>Snapshot, denormalized for display.</td></tr>
+            <tr><td><code>item_id</code></td><td>number</td><td>References <code>menu.item_id</code> — but see <code>item_name</code>/<code>unit_price</code> below, since the menu row itself may have changed since.</td></tr>
+            <tr><td><code>item_name</code></td><td>string</td><td>Snapshot of the item's name at purchase time.</td></tr>
+            <tr><td><code>units</code></td><td>number</td><td>Quantity bought in this line.</td></tr>
+            <tr><td><code>unit_price</code></td><td>number</td><td>Snapshot of the item's price at purchase time.</td></tr>
+            <tr><td><code>price_paid</code></td><td>number</td><td><code>units × unit_price</code>, stored rather than recomputed.</td></tr>
+            <tr><td><code>date</code></td><td>date</td><td><code>YYYY-MM-DD</code>, Europe/Rome. Drives "today's" filtering everywhere and the same-day delete rule.</td></tr>
+            <tr><td><code>timestamp</code></td><td>timestamp</td><td><code>YYYY-MM-DDTHH:MM</code>, Europe/Rome.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================== SETTINGS ===================== -->
+    <section class="sg-section">
+      <h2 class="sg-section__title">settings</h2>
+      <p class="sg-block__note">The one tab that isn't row-per-record — it's a plain key/value pair per row (column A = key, column B = value), read as a single object.</p>
+      <div class="sg-demo sg-demo--flush">
+        <table class="sg-table">
+          <thead>
+            <tr><th>Key</th><th>Type</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>daily_allowance</code></td><td>number</td><td>2-decimal amount. What the Today ticket and header chip measure spending against.</td></tr>
+            <tr>
+              <td><code>currency</code></td><td>string (enum)</td>
+              <td><code>EUR</code> · <code>GBP</code> · <code>USD</code> · <code>CAD</code> · <code>AUD</code> · <code>BRL</code> · <code>COP</code><br>Always picked from this fixed list (Admin's Settings card is a <code>&lt;select&gt;</code>, never free text) — every price display in the app depends on it being one of these seven.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

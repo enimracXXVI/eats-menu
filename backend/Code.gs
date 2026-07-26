@@ -287,16 +287,35 @@ function applyEdit(edit) {
       price: edit.proposed_price,
       active: true,
     });
-  } else if (edit.type === "price_change") {
-    // Despite the name, this type covers any edit to an existing item —
-    // the frontend lets a name and a price be proposed together, so both
-    // get applied here, not just the price.
-    const item = readTable(SHEET.MENU).find((m) => m.item_id === edit.item_id);
-    if (item) updateRow(SHEET.MENU, item._row, { name: edit.proposed_name, price: edit.proposed_price });
   } else if (edit.type === "remove_item") {
     const item = readTable(SHEET.MENU).find((m) => m.item_id === edit.item_id);
     if (item) updateRow(SHEET.MENU, item._row, { active: false });
+  } else {
+    // "price_change" / "rename" / "edit" — any edit to an existing item's
+    // name and/or price, whichever of those actually changed (see
+    // classifyItemEdit, which is what decides which of those three labels
+    // this edit's type actually is).
+    const item = readTable(SHEET.MENU).find((m) => m.item_id === edit.item_id);
+    if (item) updateRow(SHEET.MENU, item._row, { name: edit.proposed_name, price: edit.proposed_price });
   }
+}
+
+// The frontend always proposes an existing-item edit as type "price_change"
+// (it doesn't know or care what the exact label should be) — this is what
+// decides the real, specific type that actually gets stored: a name-only
+// change is "rename", a price-only change is "price_change", and both at
+// once is "edit". Computed once, here, at proposal time, so the sheet's own
+// type column is always accurate instead of a client-side label bolted on
+// top of a generic value.
+function classifyItemEdit(edit) {
+  if (edit.type !== "price_change" || !edit.item_id) return edit.type;
+  const current = readTable(SHEET.MENU).find((m) => m.item_id === edit.item_id);
+  if (!current) return edit.type;
+  const nameChanged = current.name !== edit.proposed_name;
+  const priceChanged = current.price !== edit.proposed_price;
+  if (nameChanged && priceChanged) return "edit";
+  if (nameChanged) return "rename";
+  return "price_change";
 }
 
 // ---------------------------------------------------------------------------
@@ -323,7 +342,8 @@ function proposeMenuEdit(edit, proposer) {
       user_id: proposer.user_id,
       proposed_by: proposer.username,
     },
-    edit
+    edit,
+    { type: classifyItemEdit(edit) }
   );
 
   if (proposer.is_superuser) {

@@ -26,12 +26,8 @@ function buildApprovals(pendingEdits, users, menu, currency, rerender) {
   const rows = pendingEdits.map((edit) => {
     const proposer = usersByUsername.get(edit.proposed_by);
     const previousItem = edit.item_id ? menuByItemId.get(edit.item_id) : null;
-    const category = editCategoryLabel(edit, previousItem);
-    const priceNode = editPriceNode(
-      edit.type === "price_change" ? previousItem : null,
-      edit.proposed_price,
-      currency
-    );
+    const category = editCategoryLabel(edit);
+    const priceNode = editPriceNode(previousItem, edit.proposed_price, currency);
 
     async function decide(approve) {
       await api.reviewEdit(edit.edit_id, { approve, reviewer: state.user });
@@ -45,16 +41,12 @@ function buildApprovals(pendingEdits, users, menu, currency, rerender) {
     onBusyClick(rejectBtn, "Rejecting…", () => decide(false));
 
     return el("div", { className: "approval-row" }, [
-      el(
-        "span",
-        { className: "approval-row__who" },
-        `${proposer ? proposer.display_name : edit.proposed_by} proposes`
-      ),
+      el("span", { className: "approval-row__who" }, [
+        `${proposer ? proposer.display_name : edit.proposed_by} proposes `,
+        el("span", { className: "approval-row__category" }, category),
+      ]),
       el("div", { className: "edit-summary" }, [
-        el("div", { className: "edit-summary__title" }, [
-          el("span", { className: "approval-row__diff" }, edit.proposed_name),
-          el("span", { className: "badge badge--muted" }, category),
-        ]),
+        el("span", { className: "approval-row__diff" }, edit.proposed_name),
         priceNode,
       ]),
       el("div", { className: "approval-row__actions" }, [approveBtn, rejectBtn]),
@@ -148,6 +140,19 @@ function buildUsersCard(users, rerender) {
   ]);
 }
 
+// Both are static reference pages that live outside the hash-routed app
+// (real .html files, sibling to index.html) — opened in a new tab so
+// leaving them doesn't lose the current Admin screen state underneath.
+function buildReferenceCard() {
+  return el("div", { className: "card" }, [
+    el("h2", { className: "card__title" }, "Reference"),
+    el("div", { className: "screen__section" }, [
+      el("a", { className: "btn btn--outline btn--block", href: "styleguide.html", target: "_blank", rel: "noopener" }, "Style guide"),
+      el("a", { className: "btn btn--outline btn--block", href: "db-schema.html", target: "_blank", rel: "noopener" }, "Database schema"),
+    ]),
+  ]);
+}
+
 function buildSettingsCard(settings, rerender) {
   const allowanceInput = el("input", {
     className: "field__input",
@@ -194,6 +199,7 @@ export function renderAdmin(container, rerender, bundle) {
       buildApprovals(pendingEdits, users, menu, settings.currency, rerender),
     ]),
     buildUsersCard(users, rerender),
-    buildSettingsCard(settings, rerender)
+    buildSettingsCard(settings, rerender),
+    buildReferenceCard()
   );
 }

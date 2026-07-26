@@ -1,6 +1,6 @@
-/* Styling for the styleguide.html reference page only — never used by the
-   app itself. The components it documents are styled entirely by
-   tokens/base/components/layout.css, unmodified. */
+/* Styling for the reference pages (styleguide.html, db-schema.html) only —
+   never used by the app itself. The components styleguide.html documents
+   are styled entirely by tokens/base/components/layout.css, unmodified. */
 
 /* layout.css makes <body> a centering flex container for the app shell;
    this page isn't the app shell, so undo that and lay out as a normal
@@ -187,4 +187,50 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+/* Schema tables (db-schema.html only) — the app itself never renders a
+   literal <table>, so this exists here rather than in components.css. */
+.sg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+}
+
+.sg-table th,
+.sg-table td {
+  text-align: left;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-line);
+  vertical-align: top;
+  line-height: 1.6;
+}
+
+.sg-table th {
+  color: var(--color-mustard);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.sg-table td {
+  color: var(--color-text-lo);
+}
+
+.sg-table td:first-child {
+  color: var(--color-text-hi);
+  white-space: nowrap;
+}
+
+.sg-table tr:last-child td {
+  border-bottom: none;
+}
+
+.sg-table code {
+  color: var(--color-text-hi);
+  background: var(--color-ink-3);
+  padding: 2px 6px;
+  border-radius: 5px;
 }
