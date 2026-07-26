@@ -6,6 +6,15 @@
   <title>eats Tab</title>
   <meta name="description" content="Track what you buy at the work canteen against your daily allowance." />
   <meta name="theme-color" content="#1b2420" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="assets/icons/favicon.png" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+  <!-- Safari doesn't read manifest.json for home-screen behavior — these
+       are its own separate mechanism for the same standalone/icon/title
+       effect on iOS. -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="eats Tab" />
   <!-- ?v= is bumped by hand whenever CSS changes — GitHub Pages doesn't
        cache-bust these on its own, and a browser that cached an old copy
        before a deploy has no other reason to ever ask for a fresh one. -->

@@ -1,4 +1,4 @@
-# Canteen Tally
+# eats Tab
 
 Track what you buy at the work canteen against a daily allowance, split it with friends, and route menu changes through a superuser approval queue.
 

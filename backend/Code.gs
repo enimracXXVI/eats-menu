@@ -1,5 +1,5 @@
 /**
- * Canteen Tally backend — Google Apps Script Web App bound to the sheet.
+ * eats Tab backend — Google Apps Script Web App bound to the sheet.
  *
  * This is the ONLY thing that touches the spreadsheet. The frontend (GitHub
  * Pages) calls it as a JSON API — see js/api.js for the client side of this

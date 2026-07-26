@@ -8,7 +8,7 @@
 //   - the floating cart dock (mountCartDock) lives at the app-shell level,
 //     not inside either screen, so it's always reachable without scrolling.
 
-import { el, fmtMoney, openSheet, showToast, onBusyClick } from "./dom.js";
+import { el, fmtMoney, openSheet, showToast, onBusyClick, budgetState } from "./dom.js";
 import { api } from "./api.js";
 import {
   state,
@@ -62,11 +62,18 @@ export function removeCartLine(itemId) {
 
 let dockEl = null;
 let dockCurrency = "EUR";
+let dockAllowance = 0;
+let dockSpent = 0;
 let onPurchaseLogged = () => {};
 
-export function mountCartDock(el_, currency, onLogged) {
+// `allowance`/`spent` are today's, from whichever bundle mounted this dock
+// (every bundle carries today's purchases — see app.js) — what the cart
+// sheet needs to show what's left *after* the cart, not just today so far.
+export function mountCartDock(el_, currency, allowance, spent, onLogged) {
   dockEl = el_;
   dockCurrency = currency;
+  dockAllowance = allowance;
+  dockSpent = spent;
   onPurchaseLogged = onLogged;
   refreshCartDock();
 }
@@ -101,6 +108,8 @@ function openCartSheet() {
   const currency = dockCurrency;
   const list = el("div", { className: "rows" }, []);
   const total = el("span", { className: "u-tabular" }, "");
+  const projectedNode = el("p", { className: "ticket__gauge-caption" }, "");
+  const overWarning = el("p", { className: "field__error" }, "");
   const confirmBtn = el("button", { className: "btn btn--primary" }, "");
 
   function refresh() {
@@ -158,6 +167,16 @@ function openCartSheet() {
     );
     total.textContent = fmtMoney(cartTotal(), currency);
     confirmBtn.textContent = `Log purchase — ${fmtMoney(cartTotal(), currency)}`;
+
+    // What today's remaining amount would become if this cart gets logged
+    // — not just today's total so far, so a purchase that would tip you
+    // over is obvious before you confirm it, not after.
+    const { remaining, state: budget } = budgetState(dockSpent + cartTotal(), dockAllowance);
+    const modifier = budget === "over" ? " ticket__remaining--critical" : budget === "warning" ? " ticket__remaining--warning" : "";
+    projectedNode.className = `ticket__gauge-caption${modifier}`;
+    projectedNode.textContent =
+      remaining >= 0 ? `${fmtMoney(remaining, currency)} left after this` : `${fmtMoney(-remaining, currency)} over your allowance`;
+    overWarning.textContent = budget === "over" ? "This purchase will put you over your daily allowance." : "";
   }
 
   onBusyClick(confirmBtn, "Logging…", async () => {
@@ -178,6 +197,8 @@ function openCartSheet() {
   const body = el("div", { className: "screen__section" }, [
     list,
     el("p", { className: "ticket__gauge-caption" }, ["Subtotal: ", total]),
+    projectedNode,
+    overWarning,
     el("div", { className: "sheet__actions" }, [confirmBtn]),
   ]);
 
