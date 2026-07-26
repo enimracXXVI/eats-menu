@@ -97,6 +97,16 @@ svg {
   margin-left: auto;
 }
 
+/* !important is the one deliberate exception to "let specificity/order
+   decide" in this codebase: this utility exists specifically to force an
+   element hidden regardless of whatever display value its own component
+   class sets (e.g. .btn's display:inline-flex, loaded after this file) —
+   without it, a same-specificity single-class rule loses to the later
+   stylesheet on source order alone. */
+.u-hidden {
+  display: none !important;
+}
+
 .u-visually-hidden {
   position: absolute;
   width: 1px;

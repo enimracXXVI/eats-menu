@@ -22,6 +22,14 @@
         <code>:hover</code> / <code>:active</code> state. If a button looks different somewhere in
         the app, that's a bug against this page, not a second style.
       </p>
+      <p class="sg-block__note">
+        The app itself (<code>.app-shell</code>) is a centered, phone-width card up to 900px
+        viewport width, floating with a shadow from 540px up. Past 900px — a real desktop window,
+        not just a wider phone — it fills the window edge-to-edge instead, with its header/screen/
+        nav/cart-bar content capped at a comfortable 720px reading width and centered within it.
+        This page isn't the app shell, so none of that applies here — see <code>db-schema.html</code>
+        for the sheet itself.
+      </p>
     </div>
 
     <!-- ===================== LOGO ===================== -->
@@ -145,10 +153,12 @@
       </div>
 
       <div class="sg-block">
-        <span class="sg-block__label"><code>.btn--icon</code> — small circular icon-only button (Menu screen: propose-edit pencil · Header: log out)</span>
+        <span class="sg-block__label"><code>.btn--icon</code> — small circular icon-only button (Menu screen: propose-edit pencil · Header: log out). <code>.btn--icon--critical</code> — the destructive variant (delete item), an inline SVG line-icon colored via <code>currentColor</code>, never an emoji.</span>
         <div class="sg-demo sg-row">
           <button class="btn btn--icon" aria-label="Edit">✎</button>
           <button class="btn btn--icon" aria-label="Remove">✕</button>
+          <button class="btn btn--icon" aria-label="Refresh"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.3-6.5L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.5L3 16"/><path d="M3 21v-5h5"/></svg></button>
+          <button class="btn btn--icon btn--icon--critical" aria-label="Delete"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>
         </div>
       </div>
 
@@ -157,6 +167,15 @@
         <div class="sg-demo sg-demo--narrow">
           <button class="btn btn--primary btn--block">Log purchase — €4.70</button>
         </div>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label">Busy state — every button that fires a request (Save, Send for review, Approve/Reject, Log purchase, the switches, every delete) disables itself and swaps its label for the duration, so a slow round trip can't be fired twice by an impatient second tap. Shown here mid-request.</span>
+        <div class="sg-demo sg-row">
+          <button class="btn btn--primary" disabled>Saving…</button>
+          <button class="btn btn--safe" disabled>Approving…</button>
+        </div>
+        <p class="sg-block__note">Approve/Reject specifically are <em>paired</em>: clicking one disables <strong>and hides</strong> the other, so the busy one expands to fill the row (via the existing <code>flex:1</code> on both) instead of leaving a still-tappable sibling next to a button that says "Approving…" — see <code>.approval-row</code> below.</p>
       </div>
     </section>
 
@@ -180,16 +199,17 @@
       </div>
 
       <div class="sg-block">
-        <span class="sg-block__label"><code>.qty-badge</code> — Menu screen, on an item you've already added to the cart</span>
-        <div class="sg-demo"><span class="qty-badge">2</span></div>
+        <span class="sg-block__label"><code>.qty-badge</code> — Menu screen, on an item you've already added to the cart. A real button, not a static label: tapping it reveals an inline <code>.qty-stepper</code> (see Rows below) in its place for fine-grained +/-, which collapses back to this badge after 2s idle, on a +/- tap elsewhere, or on tapping any other row — whichever comes first.</span>
+        <div class="sg-demo"><button class="qty-badge">2</button></div>
       </div>
 
       <div class="sg-block">
-        <span class="sg-block__label"><code>.section-divider</code> — label + rule, heads every stacked section (Today, Menu, Admin)</span>
+        <span class="sg-block__label"><code>.section-divider</code> — label + rule, heads every stacked section (Today, Menu, Admin). An optional action (e.g. a refresh button) renders after the rule, at the far right of the same row — Menu's "Menu" header and Admin's "Waiting on your approval" header both do this.</span>
         <div class="sg-demo">
           <div class="section-divider">
-            <span class="section-divider__tag">Logged today</span>
+            <span class="section-divider__tag">Purchased today</span>
             <span class="section-divider__rule"></span>
+            <button class="btn btn--icon" aria-label="Refresh"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.3-6.5L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.5L3 16"/><path d="M3 21v-5h5"/></svg></button>
           </div>
         </div>
       </div>
@@ -272,7 +292,7 @@
             </div>
             <div class="row row--tappable row--selected">
               <span class="row__title">Fruit</span>
-              <span class="qty-badge">2</span>
+              <button class="qty-badge">2</button>
               <span class="row__price u-tabular">€0.50</span>
               <button class="btn btn--icon" aria-label="Propose edit">✎</button>
             </div>
@@ -283,16 +303,16 @@
             </div>
           </div>
         </div>
-        <p class="sg-block__note">Menu's catalog rows (above): <code>.row--tappable</code> darkens on hover/active and adds one unit to the cart. <code>.row--selected</code> + <code>.qty-badge</code> together mark an item already in the cart. <code>.badge--pending</code> replaces the edit button while a change is queued — a superuser never sees this state, their edits apply immediately.</p>
+        <p class="sg-block__note">Menu's catalog rows (above): <code>.row--tappable</code> darkens on hover/active. Tapping the row itself toggles it in/out of the cart — a second tap removes it, it does not keep incrementing. <code>.row--selected</code> + <code>.qty-badge</code> together mark an item already in the cart; tapping the badge (not the row) is what adjusts quantity. <code>.badge--pending</code> replaces the edit button while a change is queued — a superuser never sees this state on their own edits, which apply immediately, but does see it (as a tappable badge, opening a review sheet) on anyone else's.</p>
       </div>
 
       <div class="sg-block">
-        <span class="sg-block__label"><code>.approval-row</code> — Admin › Waiting on your approval. The category (New item / Rename / Price change / Edit / Remove) is folded into the "X proposes" line in paprika, not a separate badge — and it's the sheet's own <code>type</code> column, classified once server-side when the edit was proposed, not re-guessed here.</span>
+        <span class="sg-block__label"><code>.approval-row</code> — Admin › Waiting on your approval. The category (New item / Rename / Price change / Edit / Remove) is folded into the "X proposes" line in paprika, not a separate badge — and it's the sheet's own <code>type</code> column, classified once server-side when the edit was proposed (comparing the proposed name/price against the item's current row), not re-guessed on this screen. Name and price sit on one row via <code>.edit-summary</code>, each showing a struck-through previous value next to the proposed one whenever that field actually changed.</span>
         <div class="sg-demo sg-demo--narrow">
           <div class="approval-row">
-            <span class="approval-row__who">giulia proposes <span class="approval-row__category">price change</span></span>
+            <span class="approval-row__who">giulia proposes <span class="approval-row__category">edit</span></span>
             <div class="edit-summary">
-              <span class="approval-row__diff">Ready Sandwich</span>
+              <span class="row__title"><span class="row__name-was">Sandwich</span>Ready Sandwich</span>
               <span class="row__price u-tabular"><span class="row__price-was">€3.50</span>€3.80</span>
             </div>
             <div class="approval-row__actions">
@@ -301,6 +321,7 @@
             </div>
           </div>
         </div>
+        <p class="sg-block__note">Shown here as a combined rename + price change ("edit"). Approve/Reject are the same paired busy buttons as above — see Buttons.</p>
       </div>
     </section>
 
@@ -311,10 +332,10 @@
       <div class="sg-demo sg-demo--narrow">
         <div class="cart-bar">
           <span class="cart-bar__summary">3 items · <span class="u-tabular">€4.70</span></span>
-          <button class="btn btn--primary btn--sm">Review</button>
+          <button class="btn btn--primary btn--sm">View</button>
         </div>
       </div>
-      <p class="sg-block__note">Tapping anywhere on the bar (or Review) opens the cart sheet below.</p>
+      <p class="sg-block__note">Tapping anywhere on the bar (or View) opens the cart sheet below. The dock (and the padding it reserves at the bottom of the screen) only exists while the cart actually has something in it — empty cart, no reserved space.</p>
     </section>
 
     <!-- ===================== SHEET ===================== -->
@@ -342,6 +363,40 @@
         </div>
       </div>
       <p class="sg-block__note">The handle is a real drag surface, not a button — a tap does nothing; only dragging it down past ~35% of the sheet's height (or a fast flick, however short) dismisses it, tracking the finger 1:1 with no lag. Anything short of that eases back open. Tapping the backdrop or the phone/browser back button also closes the sheet, via a pushed history entry that's popped on close.</p>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.sheet__title-row</code> — an optional header action next to the title, e.g. the delete-item trash icon on an existing item's edit sheet. Also used, with the title itself set to the edit's category, for the Menu tab's inline review sheet (Approve/Reject on a pending edit without detouring through Admin).</span>
+        <div class="sg-demo sg-demo--narrow">
+          <div class="sheet">
+            <div class="sheet__handle" aria-hidden="true"></div>
+            <div class="sheet__title-row">
+              <h2 class="sheet__title">Edit Croissant</h2>
+              <button class="btn btn--icon btn--icon--critical" aria-label="Delete"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>
+            </div>
+            <div class="field"><label class="field__label">Name</label><input class="field__input" type="text" value="Croissant" /></div>
+            <div class="field"><label class="field__label">Price</label><input class="field__input" type="number" value="1.40" /></div>
+            <div class="sheet__actions"><button class="btn btn--primary">Save</button></div>
+          </div>
+        </div>
+        <p class="sg-block__note">Item names are editable here, not locked — a typo is fixed the same way a price is. Superuser: applies immediately. Anyone else: queued, same as a price change.</p>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>confirmDialog()</code> — the on-brand replacement for the browser's native <code>confirm()</code>, used for every destructive confirmation (delete a user, delete a menu item). Same sheet, same drag/backdrop/back dismissal — resolves <code>false</code> if dismissed any way other than tapping Delete.</span>
+        <div class="sg-demo sg-demo--narrow">
+          <div class="sheet">
+            <div class="sheet__handle" aria-hidden="true"></div>
+            <h2 class="sheet__title">Are you sure?</h2>
+            <div class="screen__section">
+              <p class="confirm-dialog__message">Delete Croissant? This can't be undone.</p>
+              <div class="sheet__actions">
+                <button class="btn btn--outline">Cancel</button>
+                <button class="btn btn--critical">Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ===================== FORMS ===================== -->
@@ -415,11 +470,11 @@
 
       <div class="sg-row">
         <div class="sg-block">
-          <span class="sg-block__label"><code>.empty</code> — any list with nothing in it</span>
-          <div class="sg-demo sg-demo--narrow"><p class="empty">Nothing logged yet today — add something from Menu.</p></div>
+          <span class="sg-block__label"><code>.empty</code> — any list with nothing in it. Today's specifically states the date rather than a generic "nothing yet" — it's the one place in the app where knowing exactly which day is empty matters.</span>
+          <div class="sg-demo sg-demo--narrow"><p class="empty">Nothing purchased yet today 26 July 2026</p></div>
         </div>
         <div class="sg-block">
-          <span class="sg-block__label"><code>.toast</code> — brief confirmation after Log purchase / Submit / Approve</span>
+          <span class="sg-block__label"><code>.toast</code> — brief confirmation after Log purchase / Send for review / Approve</span>
           <div class="sg-demo sg-demo--narrow sg-toast-frame">
             <div class="toast">Purchase logged</div>
           </div>

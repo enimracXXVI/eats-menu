@@ -57,6 +57,38 @@ body {
   }
 }
 
+/* A real desktop window, not just a wider phone — the floating card look
+   above is right for a phone or tablet held in the hand, but at real
+   desktop widths it just reads as a small app stuck in the middle of a lot
+   of empty browser chrome. Past this point, the shell's background fills
+   the window; the content inside it (header/screen/nav/cart bar) stays
+   capped at a comfortable reading width and centered, rather than
+   stretching every row edge-to-edge across an ultrawide window. */
+@media (min-width: 900px) {
+  .app-shell {
+    max-width: none;
+    height: 100vh;
+    height: 100svh;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .app-header,
+  .screen {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .nav,
+  .cart-dock {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
 .app-header {
   display: flex;
   align-items: center;

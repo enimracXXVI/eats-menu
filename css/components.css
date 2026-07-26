@@ -391,6 +391,13 @@
   margin-right: 6px;
 }
 
+/* Same treatment for a proposed rename. */
+.row__name-was {
+  color: var(--color-text-lo);
+  text-decoration: line-through;
+  margin-right: 6px;
+}
+
 /* Summary line inside the Menu tab's inline review sheet and the Admin
    approval list — item name and its price (or price diff) on one row.
    The category itself isn't shown here: the review sheet's title already
@@ -443,11 +450,6 @@
    against the muted proposer text around it. */
 .approval-row__category {
   color: var(--color-paprika-strong);
-}
-
-.approval-row__diff {
-  font-size: var(--text-sm);
-  font-weight: 500;
 }
 
 .approval-row__actions {
@@ -667,6 +669,14 @@
 }
 .sheet__actions .btn {
   flex: 1;
+}
+
+/* confirmDialog — the on-brand replacement for the browser's native
+   confirm(), same sheet as everything else. */
+.confirm-dialog__message {
+  font-size: var(--text-sm);
+  color: var(--color-text-hi);
+  line-height: 1.5;
 }
 
 /* ---------------------------------------------------------------------- *

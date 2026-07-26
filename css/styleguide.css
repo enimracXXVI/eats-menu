@@ -100,8 +100,16 @@ body {
   max-width: 340px;
 }
 
+/* Used to house the .nav demo below — .nav is position:absolute in the real
+   app, anchored to .app-shell (position:relative). Without an equivalent
+   positioned, sized container here, it escapes this demo box entirely and
+   sticks to the bottom of the actual browser viewport while the page
+   scrolls, instead of staying inside its demo frame. */
 .sg-demo--flush {
   padding: 0;
+  position: relative;
+  height: var(--nav-height);
+  overflow: hidden;
 }
 
 /* the sheet demo is shown inline on the page, not as a real overlay */

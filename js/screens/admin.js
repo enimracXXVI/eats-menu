@@ -5,8 +5,12 @@ import {
   CURRENCIES,
   formatPriceOnBlur,
   onBusyClick,
+  pairBusyActions,
+  confirmDialog,
   editCategoryLabel,
   editPriceNode,
+  editNameNode,
+  refreshButton,
 } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
@@ -27,6 +31,7 @@ function buildApprovals(pendingEdits, users, menu, currency, rerender) {
     const proposer = usersByUsername.get(edit.proposed_by);
     const previousItem = edit.item_id ? menuByItemId.get(edit.item_id) : null;
     const category = editCategoryLabel(edit);
+    const nameNode = editNameNode(previousItem, edit.proposed_name);
     const priceNode = editPriceNode(previousItem, edit.proposed_price, currency);
 
     async function decide(approve) {
@@ -37,18 +42,17 @@ function buildApprovals(pendingEdits, users, menu, currency, rerender) {
 
     const approveBtn = el("button", { className: "btn btn--safe" }, "Approve");
     const rejectBtn = el("button", { className: "btn btn--critical" }, "Reject");
-    onBusyClick(approveBtn, "Approving…", () => decide(true));
-    onBusyClick(rejectBtn, "Rejecting…", () => decide(false));
+    // Paired so clicking one disables AND hides the other while it's in
+    // flight — leaving both live meant Reject could still be tapped while
+    // Approve was already mid-request, firing both.
+    pairBusyActions(approveBtn, "Approving…", () => decide(true), rejectBtn, "Rejecting…", () => decide(false));
 
     return el("div", { className: "approval-row" }, [
       el("span", { className: "approval-row__who" }, [
         `${proposer ? proposer.display_name : edit.proposed_by} proposes `,
         el("span", { className: "approval-row__category" }, category),
       ]),
-      el("div", { className: "edit-summary" }, [
-        el("span", { className: "approval-row__diff" }, edit.proposed_name),
-        priceNode,
-      ]),
+      el("div", { className: "edit-summary" }, [nameNode, priceNode]),
       el("div", { className: "approval-row__actions" }, [approveBtn, rejectBtn]),
     ]);
   });
@@ -82,7 +86,7 @@ function buildUsersCard(users, rerender) {
         "✕"
       );
       onBusyClick(deleteBtn, null, async () => {
-        if (!confirm(`Delete ${user.display_name}? This can't be undone.`)) return;
+        if (!(await confirmDialog(`Delete ${user.display_name}? This can't be undone.`))) return;
         await api.deleteUser(user.user_id, state.user.user_id);
         showToast("User deleted");
         rerender();
@@ -195,7 +199,7 @@ export function renderAdmin(container, rerender, bundle) {
 
   container.replaceChildren(
     el("div", { className: "screen__section" }, [
-      sectionHeader("Waiting on your approval"),
+      sectionHeader("Waiting on your approval", refreshButton("Refresh", rerender)),
       buildApprovals(pendingEdits, users, menu, settings.currency, rerender),
     ]),
     buildUsersCard(users, rerender),

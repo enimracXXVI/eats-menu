@@ -6,9 +6,13 @@ import {
   sectionHeader,
   formatPriceOnBlur,
   onBusyClick,
+  pairBusyActions,
+  confirmDialog,
   editCategoryLabel,
   editPriceNode,
+  editNameNode,
   TRASH_ICON_SVG,
+  refreshButton,
 } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
@@ -38,7 +42,7 @@ function openProposeSheet({ item, onSubmitted }) {
   });
   formatPriceOnBlur(priceInput);
 
-  const saveBtn = el("button", { className: "btn btn--primary" }, isSuperuser ? "Save" : "Submit for approval");
+  const saveBtn = el("button", { className: "btn btn--primary" }, isSuperuser ? "Save" : "Send for review");
 
   onBusyClick(saveBtn, isSuperuser ? "Saving…" : "Sending…", async () => {
     const proposed_price = parseFloat(priceInput.value);
@@ -54,7 +58,7 @@ function openProposeSheet({ item, onSubmitted }) {
       },
       state.user
     );
-    showToast(isSuperuser ? "Updated" : "Sent for approval");
+    showToast(isSuperuser ? "Updated" : "Sent for review");
     close();
     onSubmitted();
   });
@@ -75,13 +79,13 @@ function openProposeSheet({ item, onSubmitted }) {
     onBusyClick(deleteBtn, null, async () => {
       const confirmMsg = isSuperuser
         ? `Delete ${item.name}? This can't be undone.`
-        : `Propose removing ${item.name}? A superuser will need to approve it.`;
-      if (!confirm(confirmMsg)) return;
+        : `Propose removing ${item.name}? This change will be reviewed before it applies.`;
+      if (!(await confirmDialog(confirmMsg))) return;
       await api.proposeMenuEdit(
         { type: "remove_item", item_id: item.item_id, proposed_name: item.name, proposed_price: item.price },
         state.user
       );
-      showToast(isSuperuser ? "Item deleted" : "Sent for approval");
+      showToast(isSuperuser ? "Item deleted" : "Sent for review");
       close();
       onSubmitted();
     });
@@ -98,32 +102,40 @@ function openProposeSheet({ item, onSubmitted }) {
 // compare against.
 function openReviewSheet(edit, currency, rerender, previousItem) {
   const category = editCategoryLabel(edit);
+  const nameNode = editNameNode(previousItem, edit.proposed_name);
   const priceNode = editPriceNode(previousItem, edit.proposed_price, currency);
 
   const approveBtn = el("button", { className: "btn btn--safe" }, "Approve");
   const rejectBtn = el("button", { className: "btn btn--critical" }, "Reject");
 
-  onBusyClick(approveBtn, "Approving…", async () => {
-    await api.reviewEdit(edit.edit_id, { approve: true, reviewer: state.user });
-    showToast("Approved");
-    close();
-    rerender();
-  });
-  onBusyClick(rejectBtn, "Rejecting…", async () => {
-    await api.reviewEdit(edit.edit_id, { approve: false, reviewer: state.user });
-    showToast("Rejected");
-    close();
-    rerender();
-  });
+  // Paired so clicking one disables AND hides the other — otherwise the
+  // still-live sibling could be tapped while the first request is still in
+  // flight, firing a reject on top of an in-progress approve (or vice
+  // versa).
+  pairBusyActions(
+    approveBtn,
+    "Approving…",
+    async () => {
+      await api.reviewEdit(edit.edit_id, { approve: true, reviewer: state.user });
+      showToast("Approved");
+      close();
+      rerender();
+    },
+    rejectBtn,
+    "Rejecting…",
+    async () => {
+      await api.reviewEdit(edit.edit_id, { approve: false, reviewer: state.user });
+      showToast("Rejected");
+      close();
+      rerender();
+    }
+  );
 
   // No category badge here — the sheet's own title (below) already is the
   // category, so repeating it next to the name would just be noise.
   const body = el("div", { className: "screen__section" }, [
     el("p", { className: "row__proposer" }, `Proposed by ${edit.proposed_by}`),
-    el("div", { className: "edit-summary" }, [
-      el("span", { className: "row__title" }, edit.proposed_name),
-      priceNode,
-    ]),
+    el("div", { className: "edit-summary" }, [nameNode, priceNode]),
     el("div", { className: "sheet__actions" }, [approveBtn, rejectBtn]),
   ]);
 
@@ -338,10 +350,14 @@ export function renderMenu(container, rerender, bundle) {
 
   container.replaceChildren(
     ...[
-      el("div", { className: "screen__section" }, [sectionHeader("Menu"), searchInput, rowsSlot]),
+      el("div", { className: "screen__section" }, [
+        sectionHeader("Menu", refreshButton("Refresh menu", rerender)),
+        searchInput,
+        rowsSlot,
+      ]),
       newItemRows.length > 0
         ? el("div", { className: "screen__section" }, [
-            sectionHeader("Awaiting approval"),
+            sectionHeader("Awaiting review"),
             el("div", { className: "rows" }, newItemRows),
           ])
         : null,

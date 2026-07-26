@@ -72,6 +72,18 @@ export function fmtTime(isoTimestamp) {
   return isoTimestamp.slice(11, 16);
 }
 
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+// "26 July 2026" — always this format, regardless of browser locale (the
+// app is English-only throughout, so this doesn't defer to
+// toLocaleDateString, which would follow the visitor's browser locale).
+export function fmtDate(date = new Date()) {
+  return `${String(date.getDate()).padStart(2, "0")} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
+}
+
 // Shared between the Admin approval list and the Menu tab's inline review
 // sheet, so "what kind of change is this" always reads the same way in both
 // places. This trusts edit.type as the single source of truth — the backend
@@ -107,6 +119,19 @@ export function editPriceNode(previousItem, proposedPrice, currency) {
   return el("span", { className: "row__price u-tabular" }, fmtMoney(proposedPrice, currency));
 }
 
+// Same idea as editPriceNode, for the name — a rename showed only the new
+// name with nothing to compare it to, exactly the same problem a bare
+// proposed price had.
+export function editNameNode(previousItem, proposedName) {
+  if (previousItem && previousItem.name !== proposedName) {
+    return el("span", { className: "row__title" }, [
+      el("span", { className: "row__name-was" }, previousItem.name),
+      proposedName,
+    ]);
+  }
+  return el("span", { className: "row__title" }, proposedName);
+}
+
 export function mount(root, node) {
   root.replaceChildren(node);
 }
@@ -119,8 +144,12 @@ export function mount(root, node) {
 // closes the sheet instead of navigating the app away, same as any native
 // modal would behave.
 // `headerAction`, when given, renders as a button next to the title (e.g.
-// the delete-item trash icon on the edit-item sheet).
-export function openSheet(title, bodyNode, headerAction = null) {
+// the delete-item trash icon on the edit-item sheet). `onClose`, when
+// given, fires exactly once whenever the sheet actually closes, however it
+// closes (a button inside it, the backdrop, a drag-dismiss, or back) — used
+// by confirmDialog below to resolve its promise even if the sheet was
+// dismissed without picking either option.
+export function openSheet(title, bodyNode, headerAction = null, onClose = null) {
   let closed = false;
 
   const handle = el("div", { className: "sheet__handle", "aria-hidden": "true" }, []);
@@ -155,6 +184,7 @@ export function openSheet(title, bodyNode, headerAction = null) {
     closed = true;
     window.removeEventListener("popstate", onPopState);
     backdrop.remove();
+    if (onClose) onClose();
   }
 
   function close() {
@@ -238,11 +268,30 @@ function attachSheetDrag(handle, sheetEl, backdrop, close) {
 
 // The recurring "label + horizontal rule" section header used to separate
 // stacked groups within a screen (e.g. "Tap what you got" / "Logged today").
-export function sectionHeader(text) {
-  return el("div", { className: "section-divider" }, [
-    el("span", { className: "section-divider__tag" }, text),
-    el("span", { className: "section-divider__rule" }),
-  ]);
+// `action`, when given (e.g. a refresh button), renders after the rule, at
+// the far right of the same row.
+export function sectionHeader(text, action = null) {
+  return el(
+    "div",
+    { className: "section-divider" },
+    [el("span", { className: "section-divider__tag" }, text), el("span", { className: "section-divider__rule" }), action].filter(
+      Boolean
+    )
+  );
+}
+
+// A plain line-icon refresh glyph, for the same reason TRASH_ICON_SVG
+// exists — no emoji anywhere in the app.
+export const REFRESH_ICON_SVG =
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M3 12a9 9 0 0 1 15.3-6.5L21 8"/><path d="M21 3v5h-5"/>' +
+  '<path d="M21 12a9 9 0 0 1-15.3 6.5L3 16"/><path d="M3 21v-5h5"/></svg>';
+
+export function refreshButton(label, onClick) {
+  const button = el("button", { className: "btn btn--icon", "aria-label": label, html: REFRESH_ICON_SVG }, []);
+  onBusyClick(button, null, onClick);
+  return button;
 }
 
 // Wraps a button's click handler so a slow round trip can't be fired twice
@@ -262,6 +311,69 @@ export function onBusyClick(button, label, handler) {
       button.disabled = false;
       if (label) button.textContent = original;
     }
+  });
+}
+
+// Approve/Reject (and similar mutually-exclusive action pairs): clicking
+// one disables AND hides the other for the duration, so the busy one
+// expands to fill the whole row (via the existing flex:1 on both buttons)
+// instead of leaving a dead, still-clickable sibling next to a button that
+// says "Approving…" — tapping Reject while Approve is mid-flight fired a
+// reject on top of an in-flight approve, which is exactly the bug this
+// closes.
+export function pairBusyActions(a, aLabel, aHandler, b, bLabel, bHandler) {
+  async function run(button, label, handler, other) {
+    if (button.disabled) return;
+    const original = button.textContent;
+    button.disabled = true;
+    other.disabled = true;
+    other.classList.add("u-hidden");
+    button.textContent = label;
+    try {
+      await handler();
+    } finally {
+      button.disabled = false;
+      other.disabled = false;
+      other.classList.remove("u-hidden");
+      button.textContent = original;
+    }
+  }
+  a.addEventListener("click", () => run(a, aLabel, aHandler, b));
+  b.addEventListener("click", () => run(b, bLabel, bHandler, a));
+}
+
+// On-brand replacement for the browser's native confirm() — same bottom
+// sheet as everything else, resolving true/false instead of blocking the
+// whole page. Resolves false if dismissed any other way (backdrop, drag,
+// back) without picking either button.
+export function confirmDialog(message, opts = {}) {
+  const { confirmLabel = "Delete", cancelLabel = "Cancel", tone = "critical" } = opts;
+
+  return new Promise((resolve) => {
+    let settled = false;
+    function settle(result) {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    }
+
+    const confirmBtn = el("button", { className: `btn btn--${tone}` }, confirmLabel);
+    const cancelBtn = el("button", { className: "btn btn--outline" }, cancelLabel);
+    confirmBtn.addEventListener("click", () => {
+      settle(true);
+      close();
+    });
+    cancelBtn.addEventListener("click", () => {
+      settle(false);
+      close();
+    });
+
+    const body = el("div", { className: "screen__section" }, [
+      el("p", { className: "confirm-dialog__message" }, message),
+      el("div", { className: "sheet__actions" }, [cancelBtn, confirmBtn]),
+    ]);
+
+    const close = openSheet("Are you sure?", body, null, () => settle(false));
   });
 }
 

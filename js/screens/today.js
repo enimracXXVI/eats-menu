@@ -1,4 +1,4 @@
-import { el, fmtMoney, fmtTime, sectionHeader, showToast, budgetState, onBusyClick } from "../dom.js";
+import { el, fmtMoney, fmtTime, fmtDate, sectionHeader, showToast, budgetState, onBusyClick } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
 
@@ -37,7 +37,7 @@ function buildTicket(spent, allowance, currency) {
 
 function buildLoggedRows(purchases, currency, onDeleted) {
   if (purchases.length === 0) {
-    return el("p", { className: "empty" }, "Nothing purchased yet today — add something from Menu.");
+    return el("p", { className: "empty" }, `Nothing purchased yet today ${fmtDate()}`);
   }
   const rows = purchases.map((p) => {
     const deleteBtn = el("button", { className: "btn btn--icon", "aria-label": `Delete ${p.item_name}` }, "✕");
