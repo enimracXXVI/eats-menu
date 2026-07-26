@@ -45,7 +45,7 @@ function buildHeader() {
 
   const header = el("header", { className: "app-header" }, [
     el("div", { className: "app-header__id" }, [
-      el("img", { className: "brand-logo brand-logo--header", src: "assets/icons/logo.svg", alt: "Canteen Tally" }),
+      el("img", { className: "brand-logo brand-logo--header", src: "assets/icons/logo.svg", alt: "eats Tab" }),
     ]),
     el("div", { className: "app-header__actions" }, [
       remainingChip,
@@ -142,7 +142,10 @@ async function render() {
 
   function paint(bundle) {
     updateRemainingChip(remainingChip, bundle);
-    if (cartDockEl) mountCartDock(cartDockEl, bundle.settings.currency, onPurchaseLogged);
+    if (cartDockEl) {
+      const spent = bundle.purchases.reduce((sum, p) => sum + p.price_paid, 0);
+      mountCartDock(cartDockEl, bundle.settings.currency, bundle.settings.daily_allowance, spent, onPurchaseLogged);
+    }
     return tab.render(screenEl, () => render(), bundle, refreshInPlace);
   }
 

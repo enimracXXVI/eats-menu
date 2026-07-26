@@ -6,7 +6,6 @@ import {
   sectionHeader,
   formatPriceOnBlur,
   onBusyClick,
-  pairBusyActions,
   confirmDialog,
   editCategoryLabel,
   editPriceNode,
@@ -101,36 +100,36 @@ function openProposeSheet({ item, onSubmitted }) {
 // have to detour through Admin just to decide on one change. `previousItem`
 // is the item's current row when reviewing an edit against an existing
 // item — null for a brand new item proposal, where there's nothing to
-// compare against.
-function openReviewSheet(edit, currency, rerender, previousItem) {
+// compare against. `onDecide(edit, approve)` (from renderMenu) removes the
+// edit from the screen instantly and fires the real request in the
+// background — same optimistic pattern as favoriting — so this sheet just
+// closes immediately on a tap rather than showing its own busy state.
+function openReviewSheet(edit, currency, previousItem, onDecide) {
   const category = editCategoryLabel(edit);
   const nameNode = editNameNode(previousItem, edit.proposed_name);
   const priceNode = editPriceNode(previousItem, edit.proposed_price, currency);
 
-  const approveBtn = el("button", { className: "btn btn--safe" }, "Approve");
-  const rejectBtn = el("button", { className: "btn btn--critical" }, "Reject");
-
-  // Paired so clicking one disables AND hides the other — otherwise the
-  // still-live sibling could be tapped while the first request is still in
-  // flight, firing a reject on top of an in-progress approve (or vice
-  // versa).
-  pairBusyActions(
-    approveBtn,
-    "Approving…",
-    async () => {
-      await api.reviewEdit(edit.edit_id, { approve: true, reviewer: state.user });
-      showToast("Approved");
-      close();
-      rerender();
+  const approveBtn = el(
+    "button",
+    {
+      className: "btn btn--safe",
+      onClick: () => {
+        onDecide(edit, true);
+        close();
+      },
     },
-    rejectBtn,
-    "Rejecting…",
-    async () => {
-      await api.reviewEdit(edit.edit_id, { approve: false, reviewer: state.user });
-      showToast("Rejected");
-      close();
-      rerender();
-    }
+    "Approve"
+  );
+  const rejectBtn = el(
+    "button",
+    {
+      className: "btn btn--critical",
+      onClick: () => {
+        onDecide(edit, false);
+        close();
+      },
+    },
+    "Reject"
   );
 
   // No category badge here — the sheet's own title (below) already is the
@@ -183,10 +182,11 @@ function buildStarButton(item, favoriteIds, onToggleFavorite) {
 }
 
 // `rerender` here is always the real app-level rerender (from app.js) — a
-// proposed/reviewed edit changes server data (pendingEdits, maybe the menu
-// itself), so it needs a real refetch, unlike a plain cart tap or a favorite
-// toggle, which onCartChange/refreshAll already handle locally.
-function buildMenuRows(menu, pendingByItemId, query, currency, rerender, ui, favoriteIds, onToggleFavorite) {
+// saved edit (Save/Send for review, or delete) changes server data in a
+// way that isn't reflected in this screen's own local state, so it needs a
+// real refetch, unlike a cart tap, a favorite toggle, or an approve/reject
+// decision, which all update this screen's own state directly instead.
+function buildMenuRows(menu, pendingByItemId, query, currency, rerender, ui, favoriteIds, onToggleFavorite, decideEdit) {
   const filtered = menu.filter((item) => item.name.toLowerCase().includes(query.trim().toLowerCase()));
 
   if (filtered.length === 0) {
@@ -215,7 +215,7 @@ function buildMenuRows(menu, pendingByItemId, query, currency, rerender, ui, fav
               className: "badge badge--pending",
               onClick: (event) => {
                 event.stopPropagation();
-                openReviewSheet(pending, currency, rerender, item);
+                openReviewSheet(pending, currency, item, decideEdit);
               },
             },
             "Pending"
@@ -298,18 +298,20 @@ function watchOutsideTaps(ui) {
 }
 
 // `bundle` ({menu, pendingEdits, favorites, settings}) is fetched once by
-// app.js. `favorites` is this user's own list of favorited item_ids —
-// scoped entirely to this screen (unlike the cart, nothing outside Menu
-// needs to know about it), so it lives as local state here rather than in
-// the shared state.js/cart.js. `refreshInPlace` is used only by the
-// section's own refresh button — see app.js for why it's not just `rerender`.
+// app.js. `favorites` and `pendingEdits` are both held as local mutable
+// state here rather than the shared state.js/cart.js — favoriting and
+// approve/reject decisions only ever need to be reflected on this one
+// screen, unlike the cart. `refreshInPlace` is used only by the sections'
+// own refresh buttons — see app.js for why it's not just `rerender`.
 export function renderMenu(container, rerender, bundle, refreshInPlace) {
-  const { menu, pendingEdits, favorites, settings } = bundle;
+  const { menu, favorites, settings } = bundle;
   const isSuperuser = state.user.is_superuser;
 
-  const pendingByItemId = new Map(pendingEdits.filter((e) => e.item_id).map((e) => [e.item_id, e]));
-  const newItemProposals = pendingEdits.filter((e) => e.type === "new_item");
+  let edits = [...bundle.pendingEdits];
   const favoriteIds = new Set(favorites || []);
+
+  const pendingByItemId = () => new Map(edits.filter((e) => e.item_id).map((e) => [e.item_id, e]));
+  const newItemProposals = () => edits.filter((e) => e.type === "new_item");
 
   // Favoriting updates the UI immediately rather than waiting on the round
   // trip — it's a low-stakes, instantly-reversible preference, not a
@@ -330,13 +332,30 @@ export function renderMenu(container, rerender, bundle, refreshInPlace) {
     }
   }
 
+  // Same instant-then-background pattern for a superuser's approve/reject,
+  // here or from the review sheet: the edit disappears from every list on
+  // this screen immediately, restored only if the request actually fails.
+  async function decideEdit(edit, approve) {
+    const index = edits.indexOf(edit);
+    edits = edits.filter((e) => e !== edit);
+    refreshAll();
+    try {
+      await api.reviewEdit(edit.edit_id, { approve, reviewer: state.user });
+      showToast(approve ? "Approved" : "Rejected");
+    } catch {
+      edits.splice(index, 0, edit);
+      refreshAll();
+    }
+  }
+
   let query = "";
   const rowsSlot = el("div", {});
   const favoritesSectionSlot = el("div", {});
+  const newItemSlot = el("div", {});
 
   function refreshRows() {
     rowsSlot.replaceChildren(
-      buildMenuRows(menu, pendingByItemId, query, settings.currency, rerender, ui, favoriteIds, toggleFavorite)
+      buildMenuRows(menu, pendingByItemId(), query, settings.currency, rerender, ui, favoriteIds, toggleFavorite, decideEdit)
     );
   }
 
@@ -349,8 +368,56 @@ export function renderMenu(container, rerender, bundle, refreshInPlace) {
       ...(favoriteItems.length > 0
         ? [
             el("div", { className: "screen__section" }, [
-              sectionHeader("Favourites"),
-              buildMenuRows(favoriteItems, pendingByItemId, "", settings.currency, rerender, ui, favoriteIds, toggleFavorite),
+              sectionHeader("Favourites", refreshButton("Refresh favourites", refreshInPlace)),
+              buildMenuRows(
+                favoriteItems,
+                pendingByItemId(),
+                "",
+                settings.currency,
+                rerender,
+                ui,
+                favoriteIds,
+                toggleFavorite,
+                decideEdit
+              ),
+            ]),
+          ]
+        : [])
+    );
+  }
+
+  // Visible to everyone, not just superusers, so who's asking for what is
+  // always shown here — this isn't the approval queue, just the catalog
+  // reflecting what's already been proposed. Superusers can tap a row to
+  // approve/reject it right here instead of detouring through Admin.
+  function refreshNewItems() {
+    const proposals = newItemProposals();
+    newItemSlot.replaceChildren(
+      ...(proposals.length > 0
+        ? [
+            el("div", { className: "screen__section" }, [
+              sectionHeader("Awaiting review"),
+              el(
+                "div",
+                { className: "rows" },
+                proposals.map((edit) =>
+                  el(
+                    "div",
+                    {
+                      className: `row${isSuperuser ? " row--tappable" : ""}`,
+                      onClick: isSuperuser ? () => openReviewSheet(edit, settings.currency, null, decideEdit) : null,
+                    },
+                    [
+                      el("div", { className: "row__title-group" }, [
+                        el("span", { className: "row__title" }, edit.proposed_name),
+                        el("span", { className: "row__proposer" }, `by ${edit.proposed_by}`),
+                      ]),
+                      el("span", { className: "badge badge--pending" }, "New item"),
+                      el("span", { className: "row__price u-tabular" }, fmtMoney(edit.proposed_price, settings.currency)),
+                    ]
+                  )
+                )
+              ),
             ]),
           ]
         : [])
@@ -360,6 +427,7 @@ export function renderMenu(container, rerender, bundle, refreshInPlace) {
   function refreshAll() {
     refreshRows();
     refreshFavorites();
+    refreshNewItems();
   }
 
   const ui = {
@@ -399,50 +467,21 @@ export function renderMenu(container, rerender, bundle, refreshInPlace) {
 
   refreshAll();
 
-  // Visible to everyone, not just superusers, so who's asking for what is
-  // always shown here — this isn't the approval queue, just the catalog
-  // reflecting what's already been proposed. Superusers can tap a row to
-  // approve/reject it right here instead of detouring through Admin.
-  const newItemRows = newItemProposals.map((edit) =>
-    el(
-      "div",
-      {
-        className: `row${isSuperuser ? " row--tappable" : ""}`,
-        onClick: isSuperuser ? () => openReviewSheet(edit, settings.currency, rerender, null) : null,
-      },
-      [
-        el("div", { className: "row__title-group" }, [
-          el("span", { className: "row__title" }, edit.proposed_name),
-          el("span", { className: "row__proposer" }, `by ${edit.proposed_by}`),
-        ]),
-        el("span", { className: "badge badge--pending" }, "New item"),
-        el("span", { className: "row__price u-tabular" }, fmtMoney(edit.proposed_price, settings.currency)),
-      ]
-    )
-  );
-
   container.replaceChildren(
-    ...[
-      favoritesSectionSlot,
-      el("div", { className: "screen__section" }, [
-        sectionHeader("Menu", refreshButton("Refresh menu", refreshInPlace)),
-        searchInput,
-        rowsSlot,
-      ]),
-      newItemRows.length > 0
-        ? el("div", { className: "screen__section" }, [
-            sectionHeader("Awaiting review"),
-            el("div", { className: "rows" }, newItemRows),
-          ])
-        : null,
-      el(
-        "button",
-        {
-          className: "btn btn--outline btn--block",
-          onClick: () => openProposeSheet({ item: null, onSubmitted: rerender }),
-        },
-        "+ Propose a new item"
-      ),
-    ].filter(Boolean)
+    favoritesSectionSlot,
+    el("div", { className: "screen__section" }, [
+      sectionHeader("Menu", refreshButton("Refresh menu", refreshInPlace)),
+      searchInput,
+      rowsSlot,
+    ]),
+    newItemSlot,
+    el(
+      "button",
+      {
+        className: "btn btn--outline btn--block",
+        onClick: () => openProposeSheet({ item: null, onSubmitted: rerender }),
+      },
+      "+ Propose a new item"
+    )
   );
 }

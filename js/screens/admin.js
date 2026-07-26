@@ -5,12 +5,12 @@ import {
   CURRENCIES,
   formatPriceOnBlur,
   onBusyClick,
-  pairBusyActions,
   confirmDialog,
   editCategoryLabel,
   editPriceNode,
   editNameNode,
   refreshButton,
+  attachOptimisticToggle,
 } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
@@ -19,15 +19,28 @@ import { state } from "../state.js";
 // to cost" gets answered for a price-change proposal — without it, a row
 // like "cocomero €0.30" gives no clue whether €0.30 is the new price, the
 // whole cost, or something else entirely.
-function buildApprovals(pendingEdits, users, menu, currency, rerender) {
+//
+// Approve/Reject remove the row instantly (optimistic, like favoriting —
+// the request happens in the background, and the row only comes back if
+// it actually fails) rather than waiting on a round trip and a full
+// rerender. This also fixes the earlier "both buttons stay live" bug more
+// thoroughly than disabling did: once a row is gone, there's nothing left
+// to double-tap.
+function buildApprovalsSection(pendingEdits, users, menu, currency) {
   const usersByUsername = new Map(users.map((u) => [u.username, u]));
   const menuByItemId = new Map(menu.map((m) => [m.item_id, m]));
+  let edits = [...pendingEdits];
+  const slot = el("div", {});
 
-  if (pendingEdits.length === 0) {
-    return el("p", { className: "empty" }, "No changes waiting on you.");
+  function refresh() {
+    if (edits.length === 0) {
+      slot.replaceChildren(el("p", { className: "empty" }, "No changes waiting on you."));
+      return;
+    }
+    slot.replaceChildren(el("div", { className: "screen__section" }, edits.map(buildRow)));
   }
 
-  const rows = pendingEdits.map((edit) => {
+  function buildRow(edit) {
     const proposer = usersByUsername.get(edit.proposed_by);
     const previousItem = edit.item_id ? menuByItemId.get(edit.item_id) : null;
     const category = editCategoryLabel(edit);
@@ -35,17 +48,20 @@ function buildApprovals(pendingEdits, users, menu, currency, rerender) {
     const priceNode = editPriceNode(previousItem, edit.proposed_price, currency);
 
     async function decide(approve) {
-      await api.reviewEdit(edit.edit_id, { approve, reviewer: state.user });
-      showToast(approve ? "Approved" : "Rejected");
-      rerender();
+      const index = edits.indexOf(edit);
+      edits = edits.filter((e) => e !== edit);
+      refresh();
+      try {
+        await api.reviewEdit(edit.edit_id, { approve, reviewer: state.user });
+        showToast(approve ? "Approved" : "Rejected");
+      } catch {
+        edits.splice(index, 0, edit);
+        refresh();
+      }
     }
 
-    const approveBtn = el("button", { className: "btn btn--safe" }, "Approve");
-    const rejectBtn = el("button", { className: "btn btn--critical" }, "Reject");
-    // Paired so clicking one disables AND hides the other while it's in
-    // flight — leaving both live meant Reject could still be tapped while
-    // Approve was already mid-request, firing both.
-    pairBusyActions(approveBtn, "Approving…", () => decide(true), rejectBtn, "Rejecting…", () => decide(false));
+    const approveBtn = el("button", { className: "btn btn--safe", onClick: () => decide(true) }, "Approve");
+    const rejectBtn = el("button", { className: "btn btn--critical", onClick: () => decide(false) }, "Reject");
 
     return el("div", { className: "approval-row" }, [
       el("span", { className: "approval-row__who" }, [
@@ -55,23 +71,25 @@ function buildApprovals(pendingEdits, users, menu, currency, rerender) {
       el("div", { className: "edit-summary" }, [nameNode, priceNode]),
       el("div", { className: "approval-row__actions" }, [approveBtn, rejectBtn]),
     ]);
-  });
+  }
 
-  return el("div", { className: "screen__section" }, rows);
+  refresh();
+  return slot;
 }
 
 function buildUserSwitch(label, isOn, onToggle) {
-  return el(
+  const button = el(
     "button",
     {
       className: `switch${isOn ? " switch--on" : ""}`,
       role: "switch",
       "aria-checked": String(isOn),
       "aria-label": label,
-      onClick: onToggle,
     },
     []
   );
+  attachOptimisticToggle(button, onToggle);
+  return button;
 }
 
 function buildUsersCard(users, rerender) {
@@ -93,16 +111,12 @@ function buildUsersCard(users, rerender) {
       });
     }
 
-    const superuserSwitch = buildUserSwitch(`Toggle superuser for ${user.display_name}`, user.is_superuser, null);
-    const activeSwitch = buildUserSwitch(`Toggle active for ${user.display_name}`, user.active, null);
-    onBusyClick(superuserSwitch, null, async () => {
-      await api.updateUser(user.user_id, { is_superuser: !user.is_superuser });
-      rerender();
-    });
-    onBusyClick(activeSwitch, null, async () => {
-      await api.updateUser(user.user_id, { active: !user.active });
-      rerender();
-    });
+    const superuserSwitch = buildUserSwitch(`Toggle superuser for ${user.display_name}`, user.is_superuser, (next) =>
+      api.updateUser(user.user_id, { is_superuser: next })
+    );
+    const activeSwitch = buildUserSwitch(`Toggle active for ${user.display_name}`, user.active, (next) =>
+      api.updateUser(user.user_id, { active: next })
+    );
 
     return el("div", { className: "user-row" }, [
       el(
@@ -202,7 +216,7 @@ export function renderAdmin(container, rerender, bundle, refreshInPlace) {
   container.replaceChildren(
     el("div", { className: "screen__section" }, [
       sectionHeader("Waiting on your approval", refreshButton("Refresh", refreshInPlace)),
-      buildApprovals(pendingEdits, users, menu, settings.currency, rerender),
+      buildApprovalsSection(pendingEdits, users, menu, settings.currency),
     ]),
     buildUsersCard(users, rerender),
     buildSettingsCard(settings, rerender),

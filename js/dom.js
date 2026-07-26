@@ -358,6 +358,26 @@ export function pairBusyActions(a, aLabel, aHandler, b, bLabel, bHandler) {
   b.addEventListener("click", () => run(b, bLabel, bHandler, a));
 }
 
+// A switch (or anything else toggled by an "on" class) that flips the
+// instant the user taps it — same reasoning as favoriting: this is a quick,
+// reversible preference, not a purchase, so there's no reason to make the
+// tap wait on a round trip. `onChange(nextOn)` fires in the background;
+// the flip is undone if it throws (api.js has already toasted why).
+export function attachOptimisticToggle(button, onChange) {
+  button.addEventListener("click", async () => {
+    const wasOn = button.classList.contains("switch--on");
+    const nextOn = !wasOn;
+    button.classList.toggle("switch--on", nextOn);
+    button.setAttribute("aria-checked", String(nextOn));
+    try {
+      await onChange(nextOn);
+    } catch {
+      button.classList.toggle("switch--on", wasOn);
+      button.setAttribute("aria-checked", String(wasOn));
+    }
+  });
+}
+
 // On-brand replacement for the browser's native confirm() — same bottom
 // sheet as everything else, resolving true/false instead of blocking the
 // whole page. Resolves false if dismissed any other way (backdrop, drag,

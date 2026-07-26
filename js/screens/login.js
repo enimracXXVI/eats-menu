@@ -69,7 +69,7 @@ export function renderLogin(onLoggedIn) {
   );
 
   return el("div", { className: "login-screen" }, [
-    el("img", { className: "brand-logo brand-logo--login", src: "assets/icons/logo.svg", alt: "Canteen Tally" }),
+    el("img", { className: "brand-logo brand-logo--login", src: "assets/icons/logo.svg", alt: "eats Tab" }),
     el("h1", { className: "login-screen__mark" }, "Log in"),
     form,
   ]);

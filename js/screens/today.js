@@ -1,4 +1,4 @@
-import { el, fmtMoney, fmtTime, fmtDate, sectionHeader, showToast, budgetState, onBusyClick } from "../dom.js";
+import { el, fmtMoney, fmtTime, fmtDate, sectionHeader, showToast, budgetState } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
 
@@ -35,19 +35,12 @@ function buildTicket(spent, allowance, currency) {
   ]);
 }
 
-function buildLoggedRows(purchases, currency, onDeleted) {
+function buildLoggedRows(purchases, currency, onDelete) {
   if (purchases.length === 0) {
     return el("p", { className: "empty" }, `Nothing purchased yet today ${fmtDate()}`);
   }
-  const rows = purchases.map((p) => {
-    const deleteBtn = el("button", { className: "btn btn--icon", "aria-label": `Delete ${p.item_name}` }, "✕");
-    onBusyClick(deleteBtn, null, async () => {
-      await api.deletePurchase(p.purchase_id, state.user.user_id);
-      showToast("Purchase removed");
-      onDeleted();
-    });
-
-    return el("div", { className: "row" }, [
+  const rows = purchases.map((p) =>
+    el("div", { className: "row" }, [
       el(
         "span",
         { className: "row__title" },
@@ -55,25 +48,57 @@ function buildLoggedRows(purchases, currency, onDeleted) {
       ),
       el("span", { className: "row__meta u-tabular" }, fmtTime(p.timestamp)),
       el("span", { className: "row__price u-tabular" }, fmtMoney(p.price_paid, currency)),
-      deleteBtn,
-    ]);
-  });
+      el(
+        "button",
+        {
+          className: "btn btn--icon",
+          "aria-label": `Delete ${p.item_name}`,
+          onClick: () => onDelete(p),
+        },
+        "✕"
+      ),
+    ])
+  );
   return el("div", { className: "rows" }, rows);
 }
 
 // `bundle` ({settings, purchases}) is fetched once by app.js — it also
 // drives the header's remaining-budget chip, so this screen doesn't repeat
 // that request itself. The cart dock lives at the app-shell level (cart.js),
-// not here.
+// not here. `purchases` is held as local mutable state so a delete can
+// remove the row and update the ticket instantly — the same low-stakes,
+// instantly-reversible pattern as favoriting: the request fires in the
+// background, and the row only comes back if it actually fails.
 export function renderToday(container, rerender, bundle) {
-  const { settings, purchases } = bundle;
-  const spent = purchases.reduce((sum, p) => sum + p.price_paid, 0);
+  const { settings } = bundle;
+  let purchases = [...bundle.purchases];
+
+  const ticketSlot = el("div", {});
+  const rowsSlot = el("div", {});
+
+  function refresh() {
+    const spent = purchases.reduce((sum, p) => sum + p.price_paid, 0);
+    ticketSlot.replaceChildren(buildTicket(spent, settings.daily_allowance, settings.currency));
+    rowsSlot.replaceChildren(buildLoggedRows(purchases, settings.currency, deletePurchase));
+  }
+
+  async function deletePurchase(purchase) {
+    const index = purchases.indexOf(purchase);
+    purchases = purchases.filter((p) => p !== purchase);
+    refresh();
+    try {
+      await api.deletePurchase(purchase.purchase_id, state.user.user_id);
+      showToast("Purchase removed");
+    } catch {
+      purchases.splice(index, 0, purchase);
+      refresh();
+    }
+  }
+
+  refresh();
 
   container.replaceChildren(
-    buildTicket(spent, settings.daily_allowance, settings.currency),
-    el("div", { className: "screen__section" }, [
-      sectionHeader("Purchased today"),
-      buildLoggedRows(purchases, settings.currency, rerender),
-    ])
+    ticketSlot,
+    el("div", { className: "screen__section" }, [sectionHeader("Purchased today"), rowsSlot])
   );
 }
