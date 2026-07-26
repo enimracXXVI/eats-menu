@@ -1,4 +1,4 @@
-import { el, fmtMoney, fmtTime, sectionHeader, showToast, budgetState } from "../dom.js";
+import { el, fmtMoney, fmtTime, sectionHeader, showToast, budgetState, onBusyClick } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
 
@@ -39,8 +39,15 @@ function buildLoggedRows(purchases, currency, onDeleted) {
   if (purchases.length === 0) {
     return el("p", { className: "empty" }, "Nothing purchased yet today — add something from Menu.");
   }
-  const rows = purchases.map((p) =>
-    el("div", { className: "row" }, [
+  const rows = purchases.map((p) => {
+    const deleteBtn = el("button", { className: "btn btn--icon", "aria-label": `Delete ${p.item_name}` }, "✕");
+    onBusyClick(deleteBtn, null, async () => {
+      await api.deletePurchase(p.purchase_id, state.user.user_id);
+      showToast("Purchase removed");
+      onDeleted();
+    });
+
+    return el("div", { className: "row" }, [
       el(
         "span",
         { className: "row__title" },
@@ -48,21 +55,9 @@ function buildLoggedRows(purchases, currency, onDeleted) {
       ),
       el("span", { className: "row__meta u-tabular" }, fmtTime(p.timestamp)),
       el("span", { className: "row__price u-tabular" }, fmtMoney(p.price_paid, currency)),
-      el(
-        "button",
-        {
-          className: "btn btn--icon",
-          "aria-label": `Delete ${p.item_name}`,
-          onClick: async () => {
-            await api.deletePurchase(p.purchase_id, state.user.user_id);
-            showToast("Purchase removed");
-            onDeleted();
-          },
-        },
-        "✕"
-      ),
-    ])
-  );
+      deleteBtn,
+    ]);
+  });
   return el("div", { className: "rows" }, rows);
 }
 

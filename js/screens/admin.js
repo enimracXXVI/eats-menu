@@ -1,4 +1,4 @@
-import { el, fmtMoney, showToast, sectionHeader, CURRENCIES, formatPriceOnBlur } from "../dom.js";
+import { el, fmtMoney, showToast, sectionHeader, CURRENCIES, formatPriceOnBlur, onBusyClick } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
 
@@ -37,6 +37,11 @@ function buildApprovals(pendingEdits, users, currency, rerender) {
       rerender();
     }
 
+    const approveBtn = el("button", { className: "btn btn--safe" }, "Approve");
+    const rejectBtn = el("button", { className: "btn btn--critical" }, "Reject");
+    onBusyClick(approveBtn, "Approving…", () => decide(true));
+    onBusyClick(rejectBtn, "Rejecting…", () => decide(false));
+
     return el("div", { className: "approval-row" }, [
       el(
         "span",
@@ -44,10 +49,7 @@ function buildApprovals(pendingEdits, users, currency, rerender) {
         `${proposer ? proposer.display_name : edit.proposed_by} proposes`
       ),
       diff,
-      el("div", { className: "approval-row__actions" }, [
-        el("button", { className: "btn btn--safe", onClick: () => decide(true) }, "Approve"),
-        el("button", { className: "btn btn--critical", onClick: () => decide(false) }, "Reject"),
-      ]),
+      el("div", { className: "approval-row__actions" }, [approveBtn, rejectBtn]),
     ]);
   });
 
@@ -72,6 +74,32 @@ function buildUsersCard(users, rerender) {
   const rows = users.map((user) => {
     const isSelf = user.user_id === state.user.user_id;
 
+    let deleteBtn = null;
+    if (!isSelf) {
+      deleteBtn = el(
+        "button",
+        { className: "btn btn--icon u-push-right", "aria-label": `Delete ${user.display_name}` },
+        "✕"
+      );
+      onBusyClick(deleteBtn, null, async () => {
+        if (!confirm(`Delete ${user.display_name}? This can't be undone.`)) return;
+        await api.deleteUser(user.user_id, state.user.user_id);
+        showToast("User deleted");
+        rerender();
+      });
+    }
+
+    const superuserSwitch = buildUserSwitch(`Toggle superuser for ${user.display_name}`, user.is_superuser, null);
+    const activeSwitch = buildUserSwitch(`Toggle active for ${user.display_name}`, user.active, null);
+    onBusyClick(superuserSwitch, null, async () => {
+      await api.updateUser(user.user_id, { is_superuser: !user.is_superuser });
+      rerender();
+    });
+    onBusyClick(activeSwitch, null, async () => {
+      await api.updateUser(user.user_id, { active: !user.active });
+      rerender();
+    });
+
     return el("div", { className: "user-row" }, [
       el(
         "div",
@@ -79,45 +107,26 @@ function buildUsersCard(users, rerender) {
         [
           user.display_name,
           user.is_superuser ? el("span", { className: "badge badge--superuser" }, "Superuser") : null,
-          isSelf
-            ? null
-            : el(
-                "button",
-                {
-                  className: "btn btn--icon u-push-right",
-                  "aria-label": `Delete ${user.display_name}`,
-                  onClick: async () => {
-                    if (!confirm(`Delete ${user.display_name}? This can't be undone.`)) return;
-                    await api.deleteUser(user.user_id, state.user.user_id);
-                    showToast("User deleted");
-                    rerender();
-                  },
-                },
-                "✕"
-              ),
+          deleteBtn,
         ].filter(Boolean)
       ),
       el("div", { className: "user-row__toggles" }, [
-        el("div", { className: "toggle-row" }, [
-          el("span", { className: "toggle-row__label" }, "Superuser"),
-          buildUserSwitch(`Toggle superuser for ${user.display_name}`, user.is_superuser, async () => {
-            await api.updateUser(user.user_id, { is_superuser: !user.is_superuser });
-            rerender();
-          }),
-        ]),
-        el("div", { className: "toggle-row" }, [
-          el("span", { className: "toggle-row__label" }, "Active"),
-          buildUserSwitch(`Toggle active for ${user.display_name}`, user.active, async () => {
-            await api.updateUser(user.user_id, { active: !user.active });
-            rerender();
-          }),
-        ]),
+        el("div", { className: "toggle-row" }, [el("span", { className: "toggle-row__label" }, "Superuser"), superuserSwitch]),
+        el("div", { className: "toggle-row" }, [el("span", { className: "toggle-row__label" }, "Active"), activeSwitch]),
       ]),
     ]);
   });
 
   const usernameInput = el("input", { className: "field__input", type: "text", placeholder: "username" });
   const displayNameInput = el("input", { className: "field__input", type: "text", placeholder: "Display name" });
+
+  const addBtn = el("button", { className: "btn btn--outline btn--block" }, "+ Add user");
+  onBusyClick(addBtn, "Adding…", async () => {
+    if (!usernameInput.value.trim() || !displayNameInput.value.trim()) return;
+    await api.addUser({ username: usernameInput.value, display_name: displayNameInput.value });
+    showToast("User added");
+    rerender();
+  });
 
   return el("div", { className: "card" }, [
     el("h2", { className: "card__title" }, "Users"),
@@ -127,19 +136,7 @@ function buildUsersCard(users, rerender) {
       usernameInput,
       displayNameInput,
     ]),
-    el(
-      "button",
-      {
-        className: "btn btn--outline btn--block",
-        onClick: async () => {
-          if (!usernameInput.value.trim() || !displayNameInput.value.trim()) return;
-          await api.addUser({ username: usernameInput.value, display_name: displayNameInput.value });
-          showToast("User added");
-          rerender();
-        },
-      },
-      "+ Add user"
-    ),
+    addBtn,
   ]);
 }
 
@@ -160,6 +157,15 @@ function buildSettingsCard(settings, rerender) {
     )
   );
 
+  const saveBtn = el("button", { className: "btn btn--primary btn--block" }, "Save settings");
+  onBusyClick(saveBtn, "Saving…", async () => {
+    const daily_allowance = parseFloat(allowanceInput.value);
+    if (Number.isNaN(daily_allowance)) return;
+    await api.updateSettings({ daily_allowance, currency: currencyInput.value.trim() });
+    showToast("Settings saved");
+    rerender();
+  });
+
   return el("div", { className: "card" }, [
     el("h2", { className: "card__title" }, "Settings"),
     el("div", { className: "field" }, [
@@ -167,20 +173,7 @@ function buildSettingsCard(settings, rerender) {
       allowanceInput,
     ]),
     el("div", { className: "field" }, [el("label", { className: "field__label" }, "Currency"), currencyInput]),
-    el(
-      "button",
-      {
-        className: "btn btn--primary btn--block",
-        onClick: async () => {
-          const daily_allowance = parseFloat(allowanceInput.value);
-          if (Number.isNaN(daily_allowance)) return;
-          await api.updateSettings({ daily_allowance, currency: currencyInput.value.trim() });
-          showToast("Settings saved");
-          rerender();
-        },
-      },
-      "Save settings"
-    ),
+    saveBtn,
   ]);
 }
 

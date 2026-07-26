@@ -8,7 +8,7 @@
 //   - the floating cart dock (mountCartDock) lives at the app-shell level,
 //     not inside either screen, so it's always reachable without scrolling.
 
-import { el, fmtMoney, openSheet, showToast } from "./dom.js";
+import { el, fmtMoney, openSheet, showToast, onBusyClick } from "./dom.js";
 import { api } from "./api.js";
 import {
   state,
@@ -62,12 +62,12 @@ export function removeCartLine(itemId) {
 
 let dockEl = null;
 let dockCurrency = "EUR";
-let dockRerender = () => {};
+let onPurchaseLogged = () => {};
 
-export function mountCartDock(el_, currency, rerender) {
+export function mountCartDock(el_, currency, onLogged) {
   dockEl = el_;
   dockCurrency = currency;
-  dockRerender = rerender;
+  onPurchaseLogged = onLogged;
   refreshCartDock();
 }
 
@@ -92,7 +92,7 @@ function buildCartBar() {
           openCartSheet();
         },
       },
-      "Review"
+      "View"
     ),
   ]);
 }
@@ -160,14 +160,19 @@ function openCartSheet() {
     confirmBtn.textContent = `Log purchase — ${fmtMoney(cartTotal(), currency)}`;
   }
 
-  confirmBtn.addEventListener("click", async () => {
+  onBusyClick(confirmBtn, "Logging…", async () => {
     const items = state.cart.map((item) => ({ ...item }));
     await api.logPurchases(state.user, items);
     clearCart();
     notifyCartChanged();
     showToast("Purchase logged");
+    // Redirect before close(): close() calls history.back() to pop the
+    // sheet's own pushState marker, which races a hash change made after
+    // it — call it first here so by the time close() checks history.state,
+    // the redirect has already replaced the top of the stack and there's
+    // nothing left for history.back() to undo.
+    onPurchaseLogged();
     close();
-    dockRerender();
   });
 
   const body = el("div", { className: "screen__section" }, [

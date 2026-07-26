@@ -74,15 +74,18 @@ export function mount(root, node) {
 // button — a pushState marker is added while the sheet is open so back
 // closes the sheet instead of navigating the app away, same as any native
 // modal would behave.
-export function openSheet(title, bodyNode) {
+// `headerAction`, when given, renders as a button next to the title (e.g.
+// the delete-item trash icon on the edit-item sheet).
+export function openSheet(title, bodyNode, headerAction = null) {
   let closed = false;
 
   const handle = el("div", { className: "sheet__handle", "aria-hidden": "true" }, []);
-  const sheetEl = el("div", { className: "sheet" }, [
-    handle,
-    el("h2", { className: "sheet__title" }, title),
-    bodyNode,
-  ]);
+  const titleRow = el(
+    "div",
+    { className: "sheet__title-row" },
+    [el("h2", { className: "sheet__title" }, title), headerAction].filter(Boolean)
+  );
+  const sheetEl = el("div", { className: "sheet" }, [handle, titleRow, bodyNode]);
 
   const backdrop = el(
     "div",
@@ -196,6 +199,26 @@ export function sectionHeader(text) {
     el("span", { className: "section-divider__tag" }, text),
     el("span", { className: "section-divider__rule" }),
   ]);
+}
+
+// Wraps a button's click handler so a slow round trip can't be fired twice
+// by an impatient second tap: the button disables itself and (when a label
+// is given) swaps its text for the duration, restoring both afterwards
+// whether the action succeeded or failed. Icon-only buttons and toggle
+// switches pass label=null — they still get the disable, just no text swap.
+export function onBusyClick(button, label, handler) {
+  button.addEventListener("click", async (event) => {
+    if (button.disabled) return;
+    const original = button.textContent;
+    button.disabled = true;
+    if (label) button.textContent = label;
+    try {
+      await handler(event);
+    } finally {
+      button.disabled = false;
+      if (label) button.textContent = original;
+    }
+  });
 }
 
 export function showToast(message) {

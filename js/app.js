@@ -5,7 +5,7 @@ import { renderLogin } from "./screens/login.js";
 import { renderToday } from "./screens/today.js";
 import { renderMenu } from "./screens/menu.js";
 import { renderAdmin } from "./screens/admin.js";
-import { mountCartDock, clearCartChangeListeners } from "./cart.js";
+import { mountCartDock, clearCartChangeListeners, onCartChange } from "./cart.js";
 
 const TABS = [
   { path: "today", label: "Today", mark: "T", render: renderToday, fetchBundle: api.getTodayBundle, showCartDock: true },
@@ -57,6 +57,7 @@ function buildHeader() {
           "aria-label": "Log out",
           onClick: () => {
             logout();
+            bundleCache.clear();
             navigate("");
             render();
           },
@@ -80,6 +81,14 @@ function updateRemainingChip(chipEl, bundle) {
       : `${fmtMoney(-remaining, bundle.settings.currency)} over`;
 }
 
+// Every screen's last successfully-fetched bundle, keyed by tab path. A tab
+// switch (or a rerender after saving/approving/deleting something) paints
+// instantly from whatever's here instead of blanking to "Loading…" and
+// making the user stare at an empty screen for a whole Apps Script round
+// trip — the fresh bundle still gets fetched right after, it just repaints
+// quietly in place once it lands instead of gating the paint on the network.
+const bundleCache = new Map();
+
 async function render() {
   const path = currentPath();
 
@@ -96,13 +105,21 @@ async function render() {
 
   clearCartChangeListeners();
 
+  const cached = bundleCache.get(tab.path);
+
   const { header, remainingChip } = buildHeader();
-  const screenEl = el(
-    "div",
-    { className: `screen${tab.showCartDock ? " screen--with-dock" : ""}` },
-    [el("p", { className: "empty" }, "Loading…")]
-  );
+  const screenEl = el("div", { className: "screen" }, cached ? [] : [el("p", { className: "empty" }, "Loading…")]);
   const cartDockEl = tab.showCartDock ? el("div", { className: "cart-dock" }, []) : null;
+
+  // The dock only ever reserves space (screen--with-dock's padding-bottom)
+  // while it actually has something to show — an empty cart means no
+  // floating bar, so the space it would have taken must collapse too,
+  // reactively, the moment the cart empties out or gets its first item.
+  if (tab.showCartDock) {
+    const updateDockPadding = () => screenEl.classList.toggle("screen--with-dock", state.cart.length > 0);
+    updateDockPadding();
+    onCartChange(updateDockPadding);
+  }
 
   const shell = el(
     "div",
@@ -111,20 +128,44 @@ async function render() {
   );
   mount(appRoot, shell);
 
+  // Called once a purchase is actually logged — always land back on Today so
+  // the user sees what they just bought reflected immediately, regardless of
+  // which tab they logged it from. Today's cached bundle is now stale (it's
+  // missing the purchase that was just logged), so it's evicted rather than
+  // reused — landing there should show the real new total, not a leftover
+  // stale one for a moment.
+  const onPurchaseLogged = () => {
+    bundleCache.delete("today");
+    if (currentPath() === "today") render();
+    else navigate("today");
+  };
+
+  function paint(bundle) {
+    updateRemainingChip(remainingChip, bundle);
+    if (cartDockEl) mountCartDock(cartDockEl, bundle.settings.currency, onPurchaseLogged);
+    return tab.render(screenEl, () => render(), bundle);
+  }
+
+  if (cached) await paint(cached);
+
   try {
     const bundle = await tab.fetchBundle({
       userId: state.user.user_id,
       date: new Date().toISOString().slice(0, 10),
     });
+    bundleCache.set(tab.path, bundle);
 
-    updateRemainingChip(remainingChip, bundle);
-    if (cartDockEl) mountCartDock(cartDockEl, bundle.settings.currency, () => render());
+    // The user may have already navigated elsewhere while this was in
+    // flight — don't paint a screen that isn't showing anymore.
+    if (currentPath() !== tab.path) return;
 
-    await tab.render(screenEl, () => render(), bundle);
+    await paint(bundle);
   } catch {
-    // api.js already toasted the specific error — just don't leave the
-    // screen stuck on "Loading…" forever.
-    screenEl.replaceChildren(el("p", { className: "empty" }, "Couldn't load. Try again."));
+    // api.js already toasted the specific error. With nothing cached to
+    // fall back on, don't leave the screen stuck on "Loading…" forever;
+    // with something cached, leave the (now slightly stale) content up
+    // rather than replacing it with an error.
+    if (!cached) screenEl.replaceChildren(el("p", { className: "empty" }, "Couldn't load. Try again."));
   }
 }
 

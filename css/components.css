@@ -619,6 +619,13 @@
   background: var(--color-text-lo);
 }
 
+.sheet__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 .sheet__title {
   font-family: var(--font-display);
   font-weight: 800;
@@ -730,6 +737,11 @@ select.field__input {
 .switch--on::after {
   transform: translateX(16px);
   background: var(--color-safe-strong);
+}
+
+.switch:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* ---------------------------------------------------------------------- *
