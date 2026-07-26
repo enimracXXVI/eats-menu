@@ -78,6 +78,15 @@ export function mountCartDock(el_, currency, allowance, spent, onLogged) {
   refreshCartDock();
 }
 
+// Today's own delete-purchase flow updates `purchases` locally (optimistic,
+// no full app rerender — see today.js), which would otherwise leave this
+// module's `dockSpent` stale until the next real navigation/refetch. Called
+// alongside that screen's own ticket update so a cart opened right after a
+// delete already reflects the new spent-today total.
+export function updateDockSpent(spent) {
+  dockSpent = spent;
+}
+
 export function refreshCartDock() {
   if (!dockEl) return;
   dockEl.replaceChildren(...(state.cart.length > 0 ? [buildCartBar()] : []));
@@ -170,13 +179,17 @@ function openCartSheet() {
 
     // What today's remaining amount would become if this cart gets logged
     // — not just today's total so far, so a purchase that would tip you
-    // over is obvious before you confirm it, not after.
+    // over is obvious before you confirm it, not after. Deliberately binary
+    // (unlike the Today ticket's safe/warning/over 3-tier gauge): this alert
+    // only fires once the cart would actually put you over, not while
+    // merely approaching the allowance.
     const { remaining, state: budget } = budgetState(dockSpent + cartTotal(), dockAllowance);
-    const modifier = budget === "over" ? " ticket__remaining--critical" : budget === "warning" ? " ticket__remaining--warning" : "";
-    projectedNode.className = `ticket__gauge-caption${modifier}`;
-    projectedNode.textContent =
-      remaining >= 0 ? `${fmtMoney(remaining, currency)} left after this` : `${fmtMoney(-remaining, currency)} over your allowance`;
-    overWarning.textContent = budget === "over" ? "This purchase will put you over your daily allowance." : "";
+    const isOver = budget === "over";
+    projectedNode.className = `ticket__gauge-caption${isOver ? " ticket__remaining--critical" : ""}`;
+    projectedNode.textContent = isOver
+      ? `${fmtMoney(-remaining, currency)} over your allowance`
+      : `${fmtMoney(remaining, currency)} left after this`;
+    overWarning.textContent = isOver ? "This purchase will put you over your daily allowance." : "";
   }
 
   onBusyClick(confirmBtn, "Logging…", async () => {

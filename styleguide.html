@@ -139,8 +139,8 @@
       </div>
 
       <div class="sg-block">
-        <span class="sg-block__label"><code>.btn .btn--outline</code> — secondary / neutral action (+ Propose a new item)</span>
-        <div class="sg-demo sg-row"><button class="btn btn--outline">+ Propose a new item</button></div>
+        <span class="sg-block__label"><code>.btn .btn--outline</code> — secondary / neutral action (+ Add new item)</span>
+        <div class="sg-demo sg-row"><button class="btn btn--outline">+ Add new item</button></div>
       </div>
 
       <div class="sg-block">
@@ -215,6 +215,31 @@
         <div class="sg-demo sg-row">
           <button class="btn btn--icon is-spinning" aria-label="Refreshing" disabled><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.3-6.5L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.5L3 16"/><path d="M3 21v-5h5"/></svg></button>
           <span class="sg-block__note">← mid-refresh</span>
+        </div>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.section-divider__actions</code> — groups multiple header actions together, e.g. Menu's sort-direction and sort-field buttons to the left of its refresh button. Sort direction (<code>.is-flipped</code> rotates the same arrow 180° for descending) and sort field (<code>.btn--icon--text</code> — a pill instead of a circle, since its content is a short label: the currency symbol for price, "A–Z" for name, "ID" for id) cycle independently; tapping the field button rotates price → name → id → price.</span>
+        <div class="sg-demo">
+          <div class="section-divider">
+            <span class="section-divider__tag">Menu</span>
+            <span class="section-divider__rule"></span>
+            <div class="section-divider__actions">
+              <button class="btn btn--icon" aria-label="Sort ascending. Tap for descending."><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg></button>
+              <button class="btn btn--icon btn--icon--text" aria-label="Sorting by price. Tap to change.">€</button>
+              <button class="btn btn--icon" aria-label="Refresh"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.3-6.5L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.5L3 16"/><path d="M3 21v-5h5"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sg-block">
+        <span class="sg-block__label"><code>.search-field</code> — Menu's search input, with a paprika clear (×) button overlaid on the right, shown only once there's text to clear.</span>
+        <div class="sg-demo">
+          <div class="search-field">
+            <input class="field__input" type="text" value="Rice" aria-label="Search menu" />
+            <button class="search-field__clear" aria-label="Clear search"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
         </div>
       </div>
 

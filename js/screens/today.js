@@ -1,6 +1,7 @@
 import { el, fmtMoney, fmtTime, fmtDate, sectionHeader, showToast, budgetState } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
+import { updateDockSpent } from "../cart.js";
 
 function buildTicket(spent, allowance, currency) {
   const { remaining, ratio, state: budget } = budgetState(spent, allowance);
@@ -80,6 +81,11 @@ export function renderToday(container, rerender, bundle) {
     const spent = purchases.reduce((sum, p) => sum + p.price_paid, 0);
     ticketSlot.replaceChildren(buildTicket(spent, settings.daily_allowance, settings.currency));
     rowsSlot.replaceChildren(buildLoggedRows(purchases, settings.currency, deletePurchase));
+    // Keeps the cart dock's "what's left after this" figure correct if the
+    // cart gets opened right after a delete — the dock is app-shell level
+    // and doesn't otherwise hear about a purchase removed from this screen's
+    // own local state (see cart.js's updateDockSpent).
+    updateDockSpent(spent);
   }
 
   async function deletePurchase(purchase) {

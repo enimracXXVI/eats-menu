@@ -118,9 +118,24 @@
   color: var(--color-paper);
 }
 
+/* .btn--icon--text: the sort-field button's content is a short label (a
+   currency symbol, "A–Z", "ID") rather than a bare icon, so the fixed 30px
+   circle widens into a pill instead of clipping multi-character currency
+   symbols like "COL$". Same border/color chrome as .btn--icon otherwise. */
+.btn--icon--text {
+  width: auto;
+  min-width: 30px;
+  padding: 0 9px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+}
+
 /* Refresh button while its request is in flight — spins the icon instead
    of (or as well as) the usual disabled dimming, since an icon-only button
-   has no label to swap to "Refreshing…". */
+   has no label to swap to "Refreshing…". Sort direction reuses the same
+   rotate mechanics as a one-off flip rather than a continuous spin. */
 @keyframes icon-spin {
   from {
     transform: rotate(0deg);
@@ -131,6 +146,9 @@
 }
 .is-spinning svg {
   animation: icon-spin 0.6s linear infinite;
+}
+.is-flipped svg {
+  transform: rotate(180deg);
 }
 
 /* ---------------------------------------------------------------------- *
@@ -211,6 +229,14 @@
   flex: 1;
   height: 1px;
   background: var(--color-line);
+}
+
+/* Wraps a section header's action buttons (sort direction/field, refresh)
+   so they space out together as one group, in reading order left-to-right. */
+.section-divider__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 /* ---------------------------------------------------------------------- *
@@ -776,6 +802,37 @@ select.field__input {
 .field__error {
   font-size: var(--text-xs);
   color: var(--color-critical-strong);
+}
+
+/* Menu's search field — a plain .field__input with a paprika clear (×)
+   button overlaid on the right, shown only once there's text to clear
+   (toggled via .u-hidden, not built/torn down each keystroke). */
+.search-field {
+  position: relative;
+}
+
+.search-field .field__input {
+  padding-right: 40px;
+}
+
+.search-field__clear {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-paprika);
+}
+
+.search-field__clear:hover {
+  color: var(--color-paprika-strong);
 }
 
 /* switch used in Admin for is_superuser / active toggles */

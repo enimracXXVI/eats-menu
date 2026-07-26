@@ -42,9 +42,12 @@ const CURRENCY_SYMBOLS = {
 
 export const CURRENCIES = Object.keys(CURRENCY_SYMBOLS);
 
+export function currencySymbol(currency) {
+  return CURRENCY_SYMBOLS[currency] || currency;
+}
+
 export function fmtMoney(value, currency = "EUR") {
-  const symbol = CURRENCY_SYMBOLS[currency] || currency;
-  return `${symbol}${Number(value).toFixed(2)}`;
+  return `${currencySymbol(currency)}${Number(value).toFixed(2)}`;
 }
 
 // Keeps a price input always showing two decimals (0.00), even if the
@@ -287,6 +290,21 @@ export const REFRESH_ICON_SVG =
   'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
   '<path d="M3 12a9 9 0 0 1 15.3-6.5L21 8"/><path d="M21 3v5h-5"/>' +
   '<path d="M21 12a9 9 0 0 1-15.3 6.5L3 16"/><path d="M3 21v-5h5"/></svg>';
+
+// Search field's clear (×) button — paprika, not the neutral icon-button
+// color, so it reads as "discard this text" rather than a plain action.
+export const CLOSE_ICON_SVG =
+  '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+// Sort-direction toggle — a single upward arrow, flipped 180° via the
+// .is-flipped class for descending, same reuse-one-icon approach as the
+// refresh button's spin.
+export const SORT_ARROW_ICON_SVG =
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>';
 
 // Outline vs filled star, swapped based on favorited state — same
 // currentColor approach as the other icons, no emoji.

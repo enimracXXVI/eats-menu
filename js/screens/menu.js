@@ -1,6 +1,7 @@
 import {
   el,
   fmtMoney,
+  currencySymbol,
   openSheet,
   showToast,
   sectionHeader,
@@ -11,6 +12,8 @@ import {
   editPriceNode,
   editNameNode,
   TRASH_ICON_SVG,
+  CLOSE_ICON_SVG,
+  SORT_ARROW_ICON_SVG,
   refreshButton,
   STAR_ICON_SVG_OUTLINE,
   STAR_ICON_SVG_FILLED,
@@ -92,7 +95,7 @@ function openProposeSheet({ item, onSubmitted }) {
     });
   }
 
-  const close = openSheet(isNewItem ? "Propose a new item" : `Edit ${item.name}`, body, deleteBtn);
+  const close = openSheet(isNewItem ? "Add new item" : `Edit ${item.name}`, body, deleteBtn);
 }
 
 // Shown to a superuser when they tap a pending badge (existing-item edit/
@@ -353,9 +356,25 @@ export function renderMenu(container, rerender, bundle, refreshInPlace) {
   const favoritesSectionSlot = el("div", {});
   const newItemSlot = el("div", {});
 
+  // Sort state for the main Menu list only — Favourites/Awaiting review
+  // stay in their own natural order. Cycles price → name → id → price on
+  // repeated taps of the field button; direction is a separate toggle.
+  const SORT_FIELDS = ["price", "name", "id"];
+  let sortField = "price";
+  let sortDir = "asc";
+
+  function compareItems(a, b) {
+    let cmp;
+    if (sortField === "price") cmp = a.price - b.price;
+    else if (sortField === "name") cmp = a.name.localeCompare(b.name);
+    else cmp = a.item_id - b.item_id;
+    return sortDir === "asc" ? cmp : -cmp;
+  }
+
   function refreshRows() {
+    const sorted = [...menu].sort(compareItems);
     rowsSlot.replaceChildren(
-      buildMenuRows(menu, pendingByItemId(), query, settings.currency, rerender, ui, favoriteIds, toggleFavorite, decideEdit)
+      buildMenuRows(sorted, pendingByItemId(), query, settings.currency, rerender, ui, favoriteIds, toggleFavorite, decideEdit)
     );
   }
 
@@ -453,16 +472,63 @@ export function renderMenu(container, rerender, bundle, refreshInPlace) {
   onCartChange(refreshAll);
   watchOutsideTaps(ui);
 
+  const clearSearchBtn = el(
+    "button",
+    { className: "search-field__clear u-hidden", "aria-label": "Clear search", html: CLOSE_ICON_SVG },
+    []
+  );
   const searchInput = el("input", {
     className: "field__input",
-    type: "search",
+    type: "text",
     placeholder: "Search menu",
     "aria-label": "Search menu",
     onInput: (event) => {
       ui.collapse();
       query = event.target.value;
+      clearSearchBtn.classList.toggle("u-hidden", query.length === 0);
       refreshRows();
     },
+  });
+  clearSearchBtn.addEventListener("click", () => {
+    searchInput.value = "";
+    query = "";
+    clearSearchBtn.classList.add("u-hidden");
+    ui.collapse();
+    refreshRows();
+    searchInput.focus();
+  });
+
+  function sortFieldLabel() {
+    if (sortField === "price") return currencySymbol(settings.currency);
+    if (sortField === "name") return "A–Z";
+    return "ID";
+  }
+
+  const sortFieldBtn = el(
+    "button",
+    { className: "btn btn--icon btn--icon--text", "aria-label": `Sorting by ${sortField}. Tap to change.` },
+    sortFieldLabel()
+  );
+  sortFieldBtn.addEventListener("click", () => {
+    sortField = SORT_FIELDS[(SORT_FIELDS.indexOf(sortField) + 1) % SORT_FIELDS.length];
+    sortFieldBtn.textContent = sortFieldLabel();
+    sortFieldBtn.setAttribute("aria-label", `Sorting by ${sortField}. Tap to change.`);
+    refreshRows();
+  });
+
+  const sortDirBtn = el(
+    "button",
+    { className: "btn btn--icon", "aria-label": "Sort ascending. Tap for descending.", html: SORT_ARROW_ICON_SVG },
+    []
+  );
+  sortDirBtn.addEventListener("click", () => {
+    sortDir = sortDir === "asc" ? "desc" : "asc";
+    sortDirBtn.classList.toggle("is-flipped", sortDir === "desc");
+    sortDirBtn.setAttribute(
+      "aria-label",
+      sortDir === "asc" ? "Sort ascending. Tap for descending." : "Sort descending. Tap for ascending."
+    );
+    refreshRows();
   });
 
   refreshAll();
@@ -470,8 +536,15 @@ export function renderMenu(container, rerender, bundle, refreshInPlace) {
   container.replaceChildren(
     favoritesSectionSlot,
     el("div", { className: "screen__section" }, [
-      sectionHeader("Menu", refreshButton("Refresh menu", refreshInPlace)),
-      searchInput,
+      sectionHeader(
+        "Menu",
+        el("div", { className: "section-divider__actions" }, [
+          sortDirBtn,
+          sortFieldBtn,
+          refreshButton("Refresh menu", refreshInPlace),
+        ])
+      ),
+      el("div", { className: "search-field" }, [searchInput, clearSearchBtn]),
       rowsSlot,
     ]),
     newItemSlot,
@@ -481,7 +554,7 @@ export function renderMenu(container, rerender, bundle, refreshInPlace) {
         className: "btn btn--outline btn--block",
         onClick: () => openProposeSheet({ item: null, onSubmitted: rerender }),
       },
-      "+ Propose a new item"
+      "+ Add new item"
     )
   );
 }
