@@ -1,15 +1,33 @@
-import { el, fmtMoney, openSheet, showToast, sectionHeader, formatPriceOnBlur, onBusyClick } from "../dom.js";
+import {
+  el,
+  fmtMoney,
+  openSheet,
+  showToast,
+  sectionHeader,
+  formatPriceOnBlur,
+  onBusyClick,
+  editCategoryLabel,
+  editPriceNode,
+  TRASH_ICON_SVG,
+} from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
 import { addToCart, removeCartLine, decrementCartItem, onCartChange } from "../cart.js";
+
+// How long an expanded quantity stepper stays open before collapsing back
+// to the plain count badge on its own, if it's not touched again.
+const STEPPER_IDLE_TIMEOUT_MS = 3000;
 
 function openProposeSheet({ item, onSubmitted }) {
   const isNewItem = !item;
   const isSuperuser = state.user.is_superuser;
 
-  const nameInput = isNewItem
-    ? el("input", { className: "field__input", type: "text", placeholder: "Item Name" })
-    : null;
+  const nameInput = el("input", {
+    className: "field__input",
+    type: "text",
+    value: item ? item.name : "",
+    placeholder: "Item Name",
+  });
   const priceInput = el("input", {
     className: "field__input",
     type: "number",
@@ -24,7 +42,7 @@ function openProposeSheet({ item, onSubmitted }) {
 
   onBusyClick(saveBtn, isSuperuser ? "Saving…" : "Sending…", async () => {
     const proposed_price = parseFloat(priceInput.value);
-    const proposed_name = isNewItem ? nameInput.value.trim() : item.name;
+    const proposed_name = nameInput.value.trim();
     if (!proposed_name || Number.isNaN(proposed_price)) return;
 
     await api.proposeMenuEdit(
@@ -41,19 +59,19 @@ function openProposeSheet({ item, onSubmitted }) {
     onSubmitted();
   });
 
-  // Item names are permanent once created — a typo can only be fixed with
-  // direct sheet access — so an existing item's sheet only ever offers a
-  // price change plus, via the header trash button, removal.
-  const fields = [
-    isNewItem ? el("div", { className: "field" }, [el("label", { className: "field__label" }, "Name"), nameInput]) : null,
+  const body = el("div", { className: "screen__section" }, [
+    el("div", { className: "field" }, [el("label", { className: "field__label" }, "Name"), nameInput]),
     el("div", { className: "field" }, [el("label", { className: "field__label" }, "Price"), priceInput]),
-  ].filter(Boolean);
-
-  const body = el("div", { className: "screen__section" }, [...fields, el("div", { className: "sheet__actions" }, [saveBtn])]);
+    el("div", { className: "sheet__actions" }, [saveBtn]),
+  ]);
 
   let deleteBtn = null;
   if (!isNewItem) {
-    deleteBtn = el("button", { className: "btn btn--icon", "aria-label": `Delete ${item.name}` }, "🗑");
+    deleteBtn = el(
+      "button",
+      { className: "btn btn--icon btn--icon--critical", "aria-label": `Delete ${item.name}`, html: TRASH_ICON_SVG },
+      []
+    );
     onBusyClick(deleteBtn, null, async () => {
       const confirmMsg = isSuperuser
         ? `Delete ${item.name}? This can't be undone.`
@@ -72,12 +90,19 @@ function openProposeSheet({ item, onSubmitted }) {
   const close = openSheet(isNewItem ? "Propose a new item" : `Edit ${item.name}`, body, deleteBtn);
 }
 
-// Shown to a superuser when they tap a pending badge (existing-item price
-// change/removal, or a brand new item) from the Menu tab itself, so they
-// don't have to detour through Admin just to decide on one change.
-function openReviewSheet(edit, currency, rerender) {
-  const label =
-    edit.type === "new_item" ? "New item" : edit.type === "remove_item" ? "Remove item" : "Price change";
+// Shown to a superuser when they tap a pending badge (existing-item edit/
+// removal, or a brand new item) from the Menu tab itself, so they don't
+// have to detour through Admin just to decide on one change. `previousItem`
+// is the item's current row when reviewing an edit against an existing
+// item — null for a brand new item proposal, where there's nothing to
+// compare against.
+function openReviewSheet(edit, currency, rerender, previousItem) {
+  const category = editCategoryLabel(edit, previousItem);
+  const priceNode = editPriceNode(
+    edit.type === "price_change" ? previousItem : null,
+    edit.proposed_price,
+    currency
+  );
 
   const approveBtn = el("button", { className: "btn btn--safe" }, "Approve");
   const rejectBtn = el("button", { className: "btn btn--critical" }, "Reject");
@@ -97,26 +122,31 @@ function openReviewSheet(edit, currency, rerender) {
 
   const body = el("div", { className: "screen__section" }, [
     el("p", { className: "row__proposer" }, `Proposed by ${edit.proposed_by}`),
-    el("div", { className: "row" }, [
-      el("span", { className: "row__title" }, edit.proposed_name),
-      el("span", { className: "row__price u-tabular" }, fmtMoney(edit.proposed_price, currency)),
+    el("div", { className: "edit-summary" }, [
+      el("div", { className: "edit-summary__title" }, [
+        el("span", { className: "row__title" }, edit.proposed_name),
+        el("span", { className: "badge badge--muted" }, category),
+      ]),
+      priceNode,
     ]),
     el("div", { className: "sheet__actions" }, [approveBtn, rejectBtn]),
   ]);
 
-  const close = openSheet(label, body);
+  const close = openSheet(category, body);
 }
 
-function buildQtyStepper(item, cartLine) {
+function buildQtyStepper(item, cartLine, ui) {
   const decBtn = el("button", { className: "btn btn--icon", "aria-label": `Remove one ${item.name}` }, "−");
   const incBtn = el("button", { className: "btn btn--icon", "aria-label": `Add one more ${item.name}` }, "+");
   decBtn.addEventListener("click", (event) => {
     event.stopPropagation();
     decrementCartItem(item.item_id);
+    ui.keepExpanded(item.item_id);
   });
   incBtn.addEventListener("click", (event) => {
     event.stopPropagation();
     addToCart(item);
+    ui.keepExpanded(item.item_id);
   });
   return el("div", { className: "qty-stepper" }, [
     decBtn,
@@ -158,7 +188,7 @@ function buildMenuRows(menu, pendingByItemId, query, currency, rerender, ui) {
               className: "badge badge--pending",
               onClick: (event) => {
                 event.stopPropagation();
-                openReviewSheet(pending, currency, rerender);
+                openReviewSheet(pending, currency, rerender, item);
               },
             },
             "Pending"
@@ -175,14 +205,20 @@ function buildMenuRows(menu, pendingByItemId, query, currency, rerender, ui) {
         // this screen's own refreshRows (see onCartChange below), so the
         // row's highlight/count and the dock update together no matter
         // where a cart change came from: this tap, or the inline stepper.
-        onClick: () => (cartLine ? removeCartLine(item.item_id) : addToCart(item)),
+        onClick: () => {
+          // Tapping any row other than the one whose stepper is open
+          // collapses that stepper back to a badge — "tap somewhere else"
+          // closes it, same as the idle timeout does.
+          if (ui.expandedItemId !== item.item_id) ui.collapse();
+          cartLine ? removeCartLine(item.item_id) : addToCart(item);
+        },
       },
       [
         titleNode,
         pendingBadge,
         cartLine
           ? expanded
-            ? buildQtyStepper(item, cartLine)
+            ? buildQtyStepper(item, cartLine, ui)
             : el(
                 "button",
                 {
@@ -190,8 +226,7 @@ function buildMenuRows(menu, pendingByItemId, query, currency, rerender, ui) {
                   "aria-label": `Change quantity of ${item.name}`,
                   onClick: (event) => {
                     event.stopPropagation();
-                    ui.expandedItemId = item.item_id;
-                    ui.refresh();
+                    ui.keepExpanded(item.item_id);
                   },
                 },
                 String(cartLine.units)
@@ -218,6 +253,22 @@ function buildMenuRows(menu, pendingByItemId, query, currency, rerender, ui) {
   return el("div", { className: "rows" }, rows);
 }
 
+// One handler at a time collapses whichever stepper is currently open when
+// the user taps outside it (another item's badge, the cart dock, anywhere)
+// — cleared/replaced on every renderMenu so switching tabs never leaves a
+// stray listener behind.
+let outsideTapHandler = null;
+
+function watchOutsideTaps(ui) {
+  if (outsideTapHandler) document.removeEventListener("pointerdown", outsideTapHandler, true);
+  outsideTapHandler = (event) => {
+    if (ui.expandedItemId == null) return;
+    if (event.target.closest(".qty-stepper")) return;
+    ui.collapse();
+  };
+  document.addEventListener("pointerdown", outsideTapHandler, true);
+}
+
 // `bundle` ({menu, pendingEdits, settings}) is fetched once by app.js.
 export function renderMenu(container, rerender, bundle) {
   const { menu, pendingEdits, settings } = bundle;
@@ -228,11 +279,31 @@ export function renderMenu(container, rerender, bundle) {
 
   let query = "";
   const rowsSlot = el("div", {});
-  const ui = { expandedItemId: null, refresh: refreshRows };
   function refreshRows() {
     rowsSlot.replaceChildren(buildMenuRows(menu, pendingByItemId, query, settings.currency, rerender, ui));
   }
+  const ui = {
+    expandedItemId: null,
+    timer: null,
+    // Opens (or keeps open) the stepper for one item and (re)starts the
+    // idle-collapse timer — used both when the badge is first tapped and
+    // on every +/- press, so actively using the stepper never times out
+    // mid-interaction.
+    keepExpanded(itemId) {
+      clearTimeout(this.timer);
+      this.expandedItemId = itemId;
+      refreshRows();
+      this.timer = setTimeout(() => this.collapse(), STEPPER_IDLE_TIMEOUT_MS);
+    },
+    collapse() {
+      clearTimeout(this.timer);
+      if (this.expandedItemId == null) return;
+      this.expandedItemId = null;
+      refreshRows();
+    },
+  };
   onCartChange(refreshRows);
+  watchOutsideTaps(ui);
 
   const searchInput = el("input", {
     className: "field__input",
@@ -240,6 +311,7 @@ export function renderMenu(container, rerender, bundle) {
     placeholder: "Search menu",
     "aria-label": "Search menu",
     onInput: (event) => {
+      ui.collapse();
       query = event.target.value;
       refreshRows();
     },
@@ -256,7 +328,7 @@ export function renderMenu(container, rerender, bundle) {
       "div",
       {
         className: `row${isSuperuser ? " row--tappable" : ""}`,
-        onClick: isSuperuser ? () => openReviewSheet(edit, settings.currency, rerender) : null,
+        onClick: isSuperuser ? () => openReviewSheet(edit, settings.currency, rerender, null) : null,
       },
       [
         el("div", { className: "row__title-group" }, [

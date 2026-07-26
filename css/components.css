@@ -109,6 +109,15 @@
   border-color: var(--color-text-hi);
 }
 
+.btn--icon--critical {
+  color: var(--color-critical-strong);
+  border-color: var(--color-critical);
+}
+.btn--icon--critical:hover {
+  background: var(--color-critical);
+  color: var(--color-paper);
+}
+
 /* ---------------------------------------------------------------------- *
  * Badges / chips — small state labels, never used as the accent color.
  * .badge--pending   dashed paprika  — a queued, unapproved change
@@ -137,6 +146,11 @@
 .badge--superuser {
   background: rgba(231, 178, 62, 0.14);
   color: var(--color-mustard);
+}
+
+.badge--muted {
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-text-lo);
 }
 
 /* pill used for the logged-in user's name in the header */
@@ -374,6 +388,29 @@
   color: var(--color-paprika-strong);
 }
 
+/* The old value in a proposed price change — struck through, next to the
+   new one, so "what did this used to cost" is never a guess. */
+.row__price-was {
+  color: var(--color-text-lo);
+  text-decoration: line-through;
+  margin-right: 6px;
+}
+
+/* Summary block inside the Menu tab's inline review sheet and (via the
+   same category label + price helpers) the Admin approval list — name and
+   category on one line, price (or price diff) below. */
+.edit-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.edit-summary__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .row--tappable {
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease-standard);
@@ -412,16 +449,6 @@
 .approval-row__diff {
   font-size: var(--text-sm);
   font-weight: 500;
-}
-
-.approval-row__num {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-
-.approval-row__arrow {
-  color: var(--color-text-lo);
-  margin: 0 6px;
 }
 
 .approval-row__actions {

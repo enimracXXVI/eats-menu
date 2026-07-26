@@ -1,9 +1,23 @@
-import { el, fmtMoney, showToast, sectionHeader, CURRENCIES, formatPriceOnBlur, onBusyClick } from "../dom.js";
+import {
+  el,
+  showToast,
+  sectionHeader,
+  CURRENCIES,
+  formatPriceOnBlur,
+  onBusyClick,
+  editCategoryLabel,
+  editPriceNode,
+} from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
 
-function buildApprovals(pendingEdits, users, currency, rerender) {
+// `menu` (from getAdminBundle, includeInactive) is how "what did this used
+// to cost" gets answered for a price-change proposal — without it, a row
+// like "cocomero €0.30" gives no clue whether €0.30 is the new price, the
+// whole cost, or something else entirely.
+function buildApprovals(pendingEdits, users, menu, currency, rerender) {
   const usersByUsername = new Map(users.map((u) => [u.username, u]));
+  const menuByItemId = new Map(menu.map((m) => [m.item_id, m]));
 
   if (pendingEdits.length === 0) {
     return el("p", { className: "empty" }, "No changes waiting on you.");
@@ -11,25 +25,13 @@ function buildApprovals(pendingEdits, users, currency, rerender) {
 
   const rows = pendingEdits.map((edit) => {
     const proposer = usersByUsername.get(edit.proposed_by);
-    const label =
-      edit.type === "new_item"
-        ? `New item — ${edit.proposed_name}`
-        : edit.type === "remove_item"
-        ? `Remove ${edit.proposed_name}`
-        : edit.proposed_name;
-
-    const diff =
-      edit.type === "price_change"
-        ? el("span", { className: "approval-row__diff" }, [
-            label,
-            " ",
-            el("span", { className: "approval-row__num" }, fmtMoney(edit.proposed_price, currency)),
-          ])
-        : el("span", { className: "approval-row__diff" }, [
-            label,
-            " · ",
-            el("span", { className: "approval-row__num" }, fmtMoney(edit.proposed_price, currency)),
-          ]);
+    const previousItem = edit.item_id ? menuByItemId.get(edit.item_id) : null;
+    const category = editCategoryLabel(edit, previousItem);
+    const priceNode = editPriceNode(
+      edit.type === "price_change" ? previousItem : null,
+      edit.proposed_price,
+      currency
+    );
 
     async function decide(approve) {
       await api.reviewEdit(edit.edit_id, { approve, reviewer: state.user });
@@ -48,7 +50,13 @@ function buildApprovals(pendingEdits, users, currency, rerender) {
         { className: "approval-row__who" },
         `${proposer ? proposer.display_name : edit.proposed_by} proposes`
       ),
-      diff,
+      el("div", { className: "edit-summary" }, [
+        el("div", { className: "edit-summary__title" }, [
+          el("span", { className: "approval-row__diff" }, edit.proposed_name),
+          el("span", { className: "badge badge--muted" }, category),
+        ]),
+        priceNode,
+      ]),
       el("div", { className: "approval-row__actions" }, [approveBtn, rejectBtn]),
     ]);
   });
@@ -178,12 +186,12 @@ function buildSettingsCard(settings, rerender) {
 }
 
 export function renderAdmin(container, rerender, bundle) {
-  const { pendingEdits, users, settings } = bundle;
+  const { pendingEdits, users, menu, settings } = bundle;
 
   container.replaceChildren(
     el("div", { className: "screen__section" }, [
       sectionHeader("Waiting on your approval"),
-      buildApprovals(pendingEdits, users, settings.currency, rerender),
+      buildApprovals(pendingEdits, users, menu, settings.currency, rerender),
     ]),
     buildUsersCard(users, rerender),
     buildSettingsCard(settings, rerender)

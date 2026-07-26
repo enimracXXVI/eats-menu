@@ -21,6 +21,15 @@ export function el(tag, attrs = {}, children = []) {
   return node;
 }
 
+// A plain line-icon, not an emoji — colored via currentColor so a CSS class
+// (e.g. .btn--icon--critical) drives its color instead of a fixed glyph.
+export const TRASH_ICON_SVG =
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>' +
+  '<path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>' +
+  '<path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+
 const CURRENCY_SYMBOLS = {
   EUR: "€",
   GBP: "£",
@@ -61,6 +70,33 @@ export function budgetState(spent, allowance) {
 export function fmtTime(isoTimestamp) {
   if (!isoTimestamp) return "";
   return isoTimestamp.slice(11, 16);
+}
+
+// Shared between the Admin approval list and the Menu tab's inline review
+// sheet, so "what kind of change is this" always reads the same way in
+// both places. `previousItem` is the item's current (pre-edit) row, when
+// known — null for a brand new item, since there's nothing to compare to.
+export function editCategoryLabel(edit, previousItem) {
+  if (edit.type === "new_item") return "New item";
+  if (edit.type === "remove_item") return "Remove";
+  if (previousItem && previousItem.name !== edit.proposed_name) {
+    return previousItem.price !== edit.proposed_price ? "Edit" : "Rename";
+  }
+  return "Price change";
+}
+
+// The price line for a proposed edit: struck-through previous price next to
+// the proposed one when they actually differ, otherwise just the price —
+// this is what was missing that made a price-change proposal unreadable
+// ("cocomero €0.30" with no indication of what it used to cost).
+export function editPriceNode(previousItem, proposedPrice, currency) {
+  if (previousItem && previousItem.price !== proposedPrice) {
+    return el("span", { className: "row__price u-tabular" }, [
+      el("span", { className: "row__price-was" }, fmtMoney(previousItem.price, currency)),
+      fmtMoney(proposedPrice, currency),
+    ]);
+  }
+  return el("span", { className: "row__price u-tabular" }, fmtMoney(proposedPrice, currency));
 }
 
 export function mount(root, node) {

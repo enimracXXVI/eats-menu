@@ -288,8 +288,11 @@ function applyEdit(edit) {
       active: true,
     });
   } else if (edit.type === "price_change") {
+    // Despite the name, this type covers any edit to an existing item —
+    // the frontend lets a name and a price be proposed together, so both
+    // get applied here, not just the price.
     const item = readTable(SHEET.MENU).find((m) => m.item_id === edit.item_id);
-    if (item) updateRow(SHEET.MENU, item._row, { price: edit.proposed_price });
+    if (item) updateRow(SHEET.MENU, item._row, { name: edit.proposed_name, price: edit.proposed_price });
   } else if (edit.type === "remove_item") {
     const item = readTable(SHEET.MENU).find((m) => m.item_id === edit.item_id);
     if (item) updateRow(SHEET.MENU, item._row, { active: false });
@@ -451,6 +454,9 @@ function getMenuBundle({ userId, date }) {
 function getAdminBundle({ userId, date }) {
   return {
     pendingEdits: getPendingEdits("pending"),
+    // includeInactive so a still-pending edit against an item someone else
+    // already removed can still be shown against its last known name/price.
+    menu: getMenu({ includeInactive: true }),
     users: getUsers(),
     settings: getSettings(),
     purchases: getPurchases({ userId, date }),
