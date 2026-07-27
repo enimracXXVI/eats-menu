@@ -284,6 +284,61 @@ function buildMenuRows(menu, pendingByItemId, query, currency, rerender, ui, fav
   return el("div", { className: "rows" }, rows);
 }
 
+// Builds one independent sort-direction + sort-field button pair — used for
+// both the main Menu list and the Favourites section, each with its own
+// state, so sorting Favourites by name doesn't disturb how the main catalog
+// is currently sorted (mirroring how each section already has its own
+// independent refresh button). `onChange` re-renders whichever list this
+// instance belongs to; `compare` is read by that list's own refresh.
+function createSortControls(currency, onChange) {
+  const SORT_FIELDS = ["price", "name", "id"];
+  let field = "price";
+  let dir = "asc";
+
+  function fieldLabel() {
+    if (field === "price") return currencySymbol(currency);
+    if (field === "name") return "A–Z";
+    return "ID";
+  }
+
+  const fieldBtn = el(
+    "button",
+    { className: "btn btn--icon btn--icon--text", "aria-label": `Sorting by ${field}. Tap to change.` },
+    fieldLabel()
+  );
+  fieldBtn.addEventListener("click", () => {
+    field = SORT_FIELDS[(SORT_FIELDS.indexOf(field) + 1) % SORT_FIELDS.length];
+    fieldBtn.textContent = fieldLabel();
+    fieldBtn.setAttribute("aria-label", `Sorting by ${field}. Tap to change.`);
+    onChange();
+  });
+
+  const dirBtn = el(
+    "button",
+    { className: "btn btn--icon", "aria-label": "Sort ascending. Tap for descending.", html: SORT_ARROW_ICON_SVG },
+    []
+  );
+  dirBtn.addEventListener("click", () => {
+    dir = dir === "asc" ? "desc" : "asc";
+    dirBtn.classList.toggle("is-flipped", dir === "desc");
+    dirBtn.setAttribute(
+      "aria-label",
+      dir === "asc" ? "Sort ascending. Tap for descending." : "Sort descending. Tap for ascending."
+    );
+    onChange();
+  });
+
+  function compare(a, b) {
+    let cmp;
+    if (field === "price") cmp = a.price - b.price;
+    else if (field === "name") cmp = a.name.localeCompare(b.name);
+    else cmp = a.item_id - b.item_id;
+    return dir === "asc" ? cmp : -cmp;
+  }
+
+  return { dirBtn, fieldBtn, compare };
+}
+
 // One handler at a time collapses whichever stepper is currently open when
 // the user taps outside it (another item's badge, the cart dock, anywhere)
 // — cleared/replaced on every renderMenu so switching tabs never leaves a
@@ -356,23 +411,14 @@ export function renderMenu(container, rerender, bundle, refreshInPlace) {
   const favoritesSectionSlot = el("div", {});
   const newItemSlot = el("div", {});
 
-  // Sort state for the main Menu list only — Favourites/Awaiting review
-  // stay in their own natural order. Cycles price → name → id → price on
-  // repeated taps of the field button; direction is a separate toggle.
-  const SORT_FIELDS = ["price", "name", "id"];
-  let sortField = "price";
-  let sortDir = "asc";
-
-  function compareItems(a, b) {
-    let cmp;
-    if (sortField === "price") cmp = a.price - b.price;
-    else if (sortField === "name") cmp = a.name.localeCompare(b.name);
-    else cmp = a.item_id - b.item_id;
-    return sortDir === "asc" ? cmp : -cmp;
-  }
+  // Independent sort controls for the main Menu list and for Favourites —
+  // sorting one doesn't disturb the other. Awaiting review stays in its own
+  // natural order (no sort controls there).
+  const menuSort = createSortControls(settings.currency, () => refreshRows());
+  const favSort = createSortControls(settings.currency, () => refreshFavorites());
 
   function refreshRows() {
-    const sorted = [...menu].sort(compareItems);
+    const sorted = [...menu].sort(menuSort.compare);
     rowsSlot.replaceChildren(
       buildMenuRows(sorted, pendingByItemId(), query, settings.currency, rerender, ui, favoriteIds, toggleFavorite, decideEdit)
     );
@@ -382,12 +428,19 @@ export function renderMenu(container, rerender, bundle, refreshInPlace) {
   // showing every currently-favorited item. Collapses to nothing (no empty
   // state) the moment there are none, same as "Awaiting review" below.
   function refreshFavorites() {
-    const favoriteItems = menu.filter((item) => favoriteIds.has(item.item_id));
+    const favoriteItems = menu.filter((item) => favoriteIds.has(item.item_id)).sort(favSort.compare);
     favoritesSectionSlot.replaceChildren(
       ...(favoriteItems.length > 0
         ? [
             el("div", { className: "screen__section" }, [
-              sectionHeader("Favourites", refreshButton("Refresh favourites", refreshInPlace)),
+              sectionHeader(
+                "Favourites",
+                el("div", { className: "section-divider__actions" }, [
+                  favSort.dirBtn,
+                  favSort.fieldBtn,
+                  refreshButton("Refresh favourites", refreshInPlace),
+                ])
+              ),
               buildMenuRows(
                 favoriteItems,
                 pendingByItemId(),
@@ -498,39 +551,6 @@ export function renderMenu(container, rerender, bundle, refreshInPlace) {
     searchInput.focus();
   });
 
-  function sortFieldLabel() {
-    if (sortField === "price") return currencySymbol(settings.currency);
-    if (sortField === "name") return "A–Z";
-    return "ID";
-  }
-
-  const sortFieldBtn = el(
-    "button",
-    { className: "btn btn--icon btn--icon--text", "aria-label": `Sorting by ${sortField}. Tap to change.` },
-    sortFieldLabel()
-  );
-  sortFieldBtn.addEventListener("click", () => {
-    sortField = SORT_FIELDS[(SORT_FIELDS.indexOf(sortField) + 1) % SORT_FIELDS.length];
-    sortFieldBtn.textContent = sortFieldLabel();
-    sortFieldBtn.setAttribute("aria-label", `Sorting by ${sortField}. Tap to change.`);
-    refreshRows();
-  });
-
-  const sortDirBtn = el(
-    "button",
-    { className: "btn btn--icon", "aria-label": "Sort ascending. Tap for descending.", html: SORT_ARROW_ICON_SVG },
-    []
-  );
-  sortDirBtn.addEventListener("click", () => {
-    sortDir = sortDir === "asc" ? "desc" : "asc";
-    sortDirBtn.classList.toggle("is-flipped", sortDir === "desc");
-    sortDirBtn.setAttribute(
-      "aria-label",
-      sortDir === "asc" ? "Sort ascending. Tap for descending." : "Sort descending. Tap for ascending."
-    );
-    refreshRows();
-  });
-
   refreshAll();
 
   container.replaceChildren(
@@ -539,8 +559,8 @@ export function renderMenu(container, rerender, bundle, refreshInPlace) {
       sectionHeader(
         "Menu",
         el("div", { className: "section-divider__actions" }, [
-          sortDirBtn,
-          sortFieldBtn,
+          menuSort.dirBtn,
+          menuSort.fieldBtn,
           refreshButton("Refresh menu", refreshInPlace),
         ])
       ),

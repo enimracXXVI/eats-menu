@@ -763,6 +763,7 @@
 }
 
 .field__input {
+  width: 100%;
   background: var(--color-ink-2);
   border: 1.5px solid var(--color-line-strong);
   border-radius: var(--radius-sm);

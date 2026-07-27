@@ -116,7 +116,6 @@ function buildCartBar() {
 function openCartSheet() {
   const currency = dockCurrency;
   const list = el("div", { className: "rows" }, []);
-  const total = el("span", { className: "u-tabular" }, "");
   const projectedNode = el("p", { className: "ticket__gauge-caption" }, "");
   const overWarning = el("p", { className: "field__error" }, "");
   const confirmBtn = el("button", { className: "btn btn--primary" }, "");
@@ -174,7 +173,6 @@ function openCartSheet() {
         ])
       )
     );
-    total.textContent = fmtMoney(cartTotal(), currency);
     confirmBtn.textContent = `Log purchase — ${fmtMoney(cartTotal(), currency)}`;
 
     // What today's remaining amount would become if this cart gets logged
@@ -182,14 +180,18 @@ function openCartSheet() {
     // over is obvious before you confirm it, not after. Deliberately binary
     // (unlike the Today ticket's safe/warning/over 3-tier gauge): this alert
     // only fires once the cart would actually put you over, not while
-    // merely approaching the allowance.
+    // merely approaching the allowance. The over-amount lives in the
+    // warning sentence itself rather than a separate line — that separate
+    // line used to combine .ticket__gauge-caption with a color-modifier
+    // class, and .ticket__gauge-caption's own color rule (declared later in
+    // components.css) silently won the cascade, making the amount
+    // functionally invisible.
     const { remaining, state: budget } = budgetState(dockSpent + cartTotal(), dockAllowance);
     const isOver = budget === "over";
-    projectedNode.className = `ticket__gauge-caption${isOver ? " ticket__remaining--critical" : ""}`;
-    projectedNode.textContent = isOver
-      ? `${fmtMoney(-remaining, currency)} over your allowance`
-      : `${fmtMoney(remaining, currency)} left after this`;
-    overWarning.textContent = isOver ? "This purchase will put you over your daily allowance." : "";
+    projectedNode.textContent = isOver ? "" : `${fmtMoney(remaining, currency)} left after this`;
+    overWarning.textContent = isOver
+      ? `This purchase will put you over your daily allowance by ${fmtMoney(-remaining, currency)}.`
+      : "";
   }
 
   onBusyClick(confirmBtn, "Logging…", async () => {
@@ -209,7 +211,6 @@ function openCartSheet() {
 
   const body = el("div", { className: "screen__section" }, [
     list,
-    el("p", { className: "ticket__gauge-caption" }, ["Subtotal: ", total]),
     projectedNode,
     overWarning,
     el("div", { className: "sheet__actions" }, [confirmBtn]),
