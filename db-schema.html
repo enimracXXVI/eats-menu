@@ -8,10 +8,12 @@
   <link rel="stylesheet" href="css/base.css?v=2" />
   <link rel="stylesheet" href="css/components.css?v=3" />
   <link rel="stylesheet" href="css/layout.css?v=2" />
-  <link rel="stylesheet" href="css/styleguide.css?v=2" />
+  <link rel="stylesheet" href="css/styleguide.css?v=3" />
 </head>
 <body>
   <main class="sg-page">
+
+    <a href="index.html" class="btn btn--outline sg-back">← Back to app</a>
 
     <div class="sg-intro">
       <span class="sg-eyebrow">eats Tab — reference</span>
@@ -51,7 +53,7 @@
     <section class="sg-section">
       <h2 class="sg-section__title">users</h2>
       <p class="sg-block__note">Everyone who can log in. Login is username-only — no password — so this tab is the entire authorization list.</p>
-      <div class="sg-demo sg-demo--flush">
+      <div class="sg-demo">
         <table class="sg-table">
           <thead>
             <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
@@ -72,7 +74,7 @@
     <section class="sg-section">
       <h2 class="sg-section__title">menu</h2>
       <p class="sg-block__note">The catalog. A row is never deleted — removing an item just sets <code>active</code> to FALSE, so historical <code>purchases</code> rows referencing it stay meaningful.</p>
-      <div class="sg-demo sg-demo--flush">
+      <div class="sg-demo">
         <table class="sg-table">
           <thead>
             <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
@@ -91,7 +93,7 @@
     <section class="sg-section">
       <h2 class="sg-section__title">favorites</h2>
       <p class="sg-block__note">Each user's own starred items on the Menu tab — a plain join table between <code>users</code> and <code>menu</code>. No id column: the <code>(user_id, item_id)</code> pair is already unique and is exactly what every read/write here looks up by, so a synthetic id would carry no information a real lookup doesn't already have (same reasoning as the id-less <code>settings</code> tab). One row per favorited item per user; un-favoriting deletes the row rather than flagging it inactive.</p>
-      <div class="sg-demo sg-demo--flush">
+      <div class="sg-demo">
         <table class="sg-table">
           <thead>
             <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
@@ -108,7 +110,7 @@
     <section class="sg-section">
       <h2 class="sg-section__title">pendingEdits</h2>
       <p class="sg-block__note">Every proposed menu change, approved or not — this is both the live approval queue (<code>status = pending</code>) and its own history.</p>
-      <div class="sg-demo sg-demo--flush">
+      <div class="sg-demo">
         <table class="sg-table">
           <thead>
             <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
@@ -148,7 +150,7 @@
     <section class="sg-section">
       <h2 class="sg-section__title">purchases</h2>
       <p class="sg-block__note">One row per distinct item per checkout (a 3-item cart writes 3 rows in one batched call). Everything here is a snapshot at the moment of purchase — it doesn't move if the item is later renamed or repriced.</p>
-      <div class="sg-demo sg-demo--flush">
+      <div class="sg-demo">
         <table class="sg-table">
           <thead>
             <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
@@ -173,7 +175,7 @@
     <section class="sg-section">
       <h2 class="sg-section__title">settings</h2>
       <p class="sg-block__note">The one tab that isn't row-per-record — it's a plain key/value pair per row (column A = key, column B = value), read as a single object.</p>
-      <div class="sg-demo sg-demo--flush">
+      <div class="sg-demo">
         <table class="sg-table">
           <thead>
             <tr><th>Key</th><th>Type</th><th>Notes</th></tr>

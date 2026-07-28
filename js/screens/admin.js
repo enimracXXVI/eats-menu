@@ -143,10 +143,14 @@ function buildUsersCard(users, rerender) {
   // Scanning is optional here — a superuser can add someone before their
   // physical barcode is on hand, and attach/replace it later via updateUser
   // (not built here, since editing an existing user's barcode wasn't asked
-  // for). A capture just fills the hint text with the decoded value; the
-  // add button reads it at submit time.
+  // for). The hint stays blank until there's something to report, rather
+  // than announcing the empty state up front. A barcode that already
+  // belongs to someone else is surfaced immediately (instead of only on
+  // submit) and isn't attached to the new-user payload — addUser also
+  // rejects a duplicate barcode server-side, so this is a fast local
+  // warning on top of that real guard, not a substitute for it.
   let scannedBarcode = null;
-  const barcodeHint = el("p", { className: "field__hint" }, "No barcode scanned");
+  const barcodeHint = el("p", { className: "field__hint" }, "");
   const scanBtn = el(
     "button",
     { type: "button", className: "field__icon-btn", "aria-label": "Scan new user's barcode", html: BARCODE_ICON_SVG },
@@ -154,9 +158,20 @@ function buildUsersCard(users, rerender) {
   );
   scanBtn.addEventListener("click", () => {
     openBarcodeScanner({
-      onDecode: (code) => {
+      onDecode: async (code) => {
+        let existing;
+        try {
+          existing = await api.findUserByBarcode(code);
+        } catch {
+          return;
+        }
+        if (existing) {
+          scannedBarcode = null;
+          barcodeHint.textContent = `Already registered to ${existing.display_name} (@${existing.username}).`;
+          return;
+        }
         scannedBarcode = code;
-        barcodeHint.textContent = `Barcode scanned: ${code}`;
+        barcodeHint.textContent = "Barcode captured.";
       },
     });
   });
@@ -171,7 +186,7 @@ function buildUsersCard(users, rerender) {
     });
     showToast("User added");
     scannedBarcode = null;
-    barcodeHint.textContent = "No barcode scanned";
+    barcodeHint.textContent = "";
     rerender();
   });
 
