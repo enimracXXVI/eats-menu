@@ -864,8 +864,13 @@ select.field__input {
   cursor: pointer;
 }
 
-.field__icon-btn:hover {
-  color: var(--color-mustard);
+/* Gated behind (hover: hover) so a tap on a touchscreen — which has no real
+   "unhover" event — doesn't leave the icon stuck in its hover color until
+   something else on the page happens to be tapped. */
+@media (hover: hover) {
+  .field__icon-btn:hover {
+    color: var(--color-mustard);
+  }
 }
 
 /* Barcode scanner sheet body — a live camera feed inside the same bottom

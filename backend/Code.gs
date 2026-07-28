@@ -249,15 +249,31 @@ function getUsers() {
   return readTable(SHEET.USERS);
 }
 
+// Rejects a duplicate username (case-insensitive, same matching rule as
+// findUserByUsername) and a duplicate barcode — a barcode scan is only
+// useful for finding "the one user with this barcode" if the sheet never
+// lets two rows claim the same one.
 function addUser({ username, display_name, barcode }) {
   const users = readTable(SHEET.USERS);
+
+  const normalizedUsername = username.trim().toLowerCase();
+  if (users.some((u) => String(u.username).toLowerCase() === normalizedUsername)) {
+    throw new Error("That username is already taken.");
+  }
+
+  const normalizedBarcode = barcode ? String(barcode).trim() : "";
+  if (normalizedBarcode) {
+    const owner = users.find((u) => String(u.barcode).trim() === normalizedBarcode);
+    if (owner) throw new Error("That barcode is already registered to " + owner.display_name + ".");
+  }
+
   const row = {
     user_id: nextId(users, "user_id"),
-    username: username.trim().toLowerCase(),
+    username: normalizedUsername,
     display_name: display_name.trim(),
     is_superuser: false,
     active: true,
-    barcode: barcode ? String(barcode).trim() : "",
+    barcode: normalizedBarcode,
   };
   appendRow(SHEET.USERS, row);
   return row;
