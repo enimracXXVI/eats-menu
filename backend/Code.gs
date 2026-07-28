@@ -44,6 +44,7 @@ function handleAction(action, payload) {
 
   const handlers = {
     findUserByUsername: () => findUserByUsername(payload.username),
+    findUserByBarcode: () => findUserByBarcode(payload.barcode),
     getUsers: () => getUsers(),
     addUser: () => addUser(payload),
     updateUser: () => updateUser(payload.userId, payload.patch),
@@ -234,11 +235,21 @@ function findUserByUsername(username) {
   return user || null;
 }
 
+// Same not-on-the-list vs deactivated distinction as findUserByUsername —
+// a scanned barcode with no match is what triggers the login screen's
+// "create a new user" prompt.
+function findUserByBarcode(barcode) {
+  const value = String(barcode).trim();
+  if (!value) return null;
+  const user = readTable(SHEET.USERS).find((u) => String(u.barcode).trim() === value);
+  return user || null;
+}
+
 function getUsers() {
   return readTable(SHEET.USERS);
 }
 
-function addUser({ username, display_name }) {
+function addUser({ username, display_name, barcode }) {
   const users = readTable(SHEET.USERS);
   const row = {
     user_id: nextId(users, "user_id"),
@@ -246,6 +257,7 @@ function addUser({ username, display_name }) {
     display_name: display_name.trim(),
     is_superuser: false,
     active: true,
+    barcode: barcode ? String(barcode).trim() : "",
   };
   appendRow(SHEET.USERS, row);
   return row;
