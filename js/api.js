@@ -37,9 +37,10 @@ async function call(action, payload = {}) {
 
 export const api = {
   findUserByUsername: (username) => call("findUserByUsername", { username }),
+  findUserByBarcode: (barcode) => call("findUserByBarcode", { barcode }),
 
   getUsers: () => call("getUsers"),
-  addUser: ({ username, display_name }) => call("addUser", { username, display_name }),
+  addUser: ({ username, display_name, barcode }) => call("addUser", { username, display_name, barcode }),
   updateUser: (userId, patch) => call("updateUser", { userId, patch }),
   deleteUser: (userId, requestedBy) => call("deleteUser", { userId, requestedBy }),
 

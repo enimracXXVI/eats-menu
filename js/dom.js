@@ -30,6 +30,16 @@ export const TRASH_ICON_SVG =
   '<path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>' +
   '<path d="M10 11v6"/><path d="M14 11v6"/></svg>';
 
+// Barcode glyph — filled bars rather than a stroke line-icon like the
+// others, since a barcode is inherently a set of bars, not an outline.
+export const BARCODE_ICON_SVG =
+  '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">' +
+  '<rect x="2" y="4" width="1.6" height="16"/><rect x="5" y="4" width="1" height="16"/>' +
+  '<rect x="7.5" y="4" width="2" height="16"/><rect x="11" y="4" width="1" height="16"/>' +
+  '<rect x="13" y="4" width="1.6" height="16"/><rect x="16" y="4" width="1" height="16"/>' +
+  '<rect x="18.5" y="4" width="2" height="16"/><rect x="21.5" y="4" width="1" height="16"/>' +
+  "</svg>";
+
 const CURRENCY_SYMBOLS = {
   EUR: "€",
   GBP: "£",

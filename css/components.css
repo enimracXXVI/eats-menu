@@ -836,6 +836,60 @@ select.field__input {
   color: var(--color-paprika-strong);
 }
 
+/* Generic "icon inside a text field" wrapper — same geometry as
+   .search-field above, but named for reuse beyond the search box (the
+   barcode-scan button on login and Admin's add-user form). */
+.field--icon-input {
+  position: relative;
+}
+
+.field--icon-input .field__input {
+  padding-right: 40px;
+}
+
+.field__icon-btn {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-lo);
+  cursor: pointer;
+}
+
+.field__icon-btn:hover {
+  color: var(--color-mustard);
+}
+
+/* Barcode scanner sheet body — a live camera feed inside the same bottom
+   sheet used everywhere else, rather than a separate full-screen modal. */
+.scanner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.scanner__video {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--color-ink-2);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+.scanner__hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-lo);
+}
+
 /* switch used in Admin for is_superuser / active toggles */
 .switch {
   position: relative;

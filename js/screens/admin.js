@@ -11,9 +11,11 @@ import {
   editNameNode,
   refreshButton,
   attachOptimisticToggle,
+  BARCODE_ICON_SVG,
 } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
+import { openBarcodeScanner } from "../barcode-scanner.js";
 
 // `menu` (from getAdminBundle, includeInactive) is how "what did this used
 // to cost" gets answered for a price-change proposal — without it, a row
@@ -138,11 +140,38 @@ function buildUsersCard(users, rerender) {
   const usernameInput = el("input", { className: "field__input", type: "text", placeholder: "username" });
   const displayNameInput = el("input", { className: "field__input", type: "text", placeholder: "Display name" });
 
+  // Scanning is optional here — a superuser can add someone before their
+  // physical barcode is on hand, and attach/replace it later via updateUser
+  // (not built here, since editing an existing user's barcode wasn't asked
+  // for). A capture just fills the hint text with the decoded value; the
+  // add button reads it at submit time.
+  let scannedBarcode = null;
+  const barcodeHint = el("p", { className: "field__hint" }, "No barcode scanned");
+  const scanBtn = el(
+    "button",
+    { type: "button", className: "field__icon-btn", "aria-label": "Scan new user's barcode", html: BARCODE_ICON_SVG },
+    []
+  );
+  scanBtn.addEventListener("click", () => {
+    openBarcodeScanner({
+      onDecode: (code) => {
+        scannedBarcode = code;
+        barcodeHint.textContent = `Barcode scanned: ${code}`;
+      },
+    });
+  });
+
   const addBtn = el("button", { className: "btn btn--outline btn--block" }, "+ Add user");
   onBusyClick(addBtn, "Adding…", async () => {
     if (!usernameInput.value.trim() || !displayNameInput.value.trim()) return;
-    await api.addUser({ username: usernameInput.value, display_name: displayNameInput.value });
+    await api.addUser({
+      username: usernameInput.value,
+      display_name: displayNameInput.value,
+      barcode: scannedBarcode,
+    });
     showToast("User added");
+    scannedBarcode = null;
+    barcodeHint.textContent = "No barcode scanned";
     rerender();
   });
 
@@ -151,8 +180,9 @@ function buildUsersCard(users, rerender) {
     el("div", { className: "screen__section" }, rows),
     el("div", { className: "field" }, [
       el("label", { className: "field__label" }, "New user"),
-      usernameInput,
+      el("div", { className: "field--icon-input" }, [usernameInput, scanBtn]),
       displayNameInput,
+      barcodeHint,
     ]),
     addBtn,
   ]);
