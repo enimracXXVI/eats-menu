@@ -1159,12 +1159,12 @@ select.field__input {
   color: var(--color-text-ink);
 }
 
-/* Sits past the perforation (see .share-card__ticket-perf) — kept small
-   and narrow on purpose so the item name (the actual point of this card)
-   gets almost all the width instead of losing it to a timestamp. */
+/* Sits past the perforation (see .share-card__ticket-perf), with a real
+   margin on both sides of the line — never flush against it — so a wider
+   fallback font in the exported image can't push this text across it. */
 .share-card__ticket-row-meta {
   flex-shrink: 0;
-  min-width: 60px;
+  min-width: 84px;
   padding-top: 1px;
   text-align: right;
   font-size: 11px;
@@ -1188,7 +1188,7 @@ select.field__input {
   position: absolute;
   top: 0;
   bottom: 0;
-  right: 78px;
+  right: 108px;
   width: 1px;
   border-left: 2px dashed var(--color-line-ink);
 }
