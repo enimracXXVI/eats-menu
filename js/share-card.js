@@ -29,15 +29,17 @@ export function buildShareCardNode({ display_name, date, purchases, settings }) 
   const headline =
     remaining >= 0 ? `${fmtMoney(remaining, settings.currency)} left` : `${fmtMoney(-remaining, settings.currency)} over`;
 
+  // No per-item price here — the ticket's own total/gauge already say how
+  // much was spent, so each row only needs to answer "what" and "when/how
+  // many", not repeat a number that's already on the card.
   const rows = purchases.length
     ? purchases.map((p) =>
-        el("div", { className: "row" }, [
-          el("span", { className: "row__title" }, p.units > 1 ? `${p.units}× ${p.item_name}` : p.item_name),
-          el("span", { className: "row__meta u-tabular" }, fmtTime(p.timestamp)),
-          el("span", { className: "row__price u-tabular" }, fmtMoney(p.price_paid, settings.currency)),
+        el("div", { className: "share-card__ticket-row" }, [
+          el("span", { className: "share-card__ticket-row-name" }, p.item_name),
+          el("span", { className: "share-card__ticket-row-meta u-tabular" }, `${fmtTime(p.timestamp)} · ${p.units}×`),
         ])
       )
-    : [el("p", { className: "empty" }, "Nothing purchased that day.")];
+    : [el("p", { className: "share-card__ticket-empty" }, "Nothing purchased that day.")];
 
   return el("div", { className: "share-card" }, [
     el("div", { className: "share-card__accent" }),
@@ -55,23 +57,21 @@ export function buildShareCardNode({ display_name, date, purchases, settings }) 
           ` · ${fmtMoney(spent, settings.currency)} total`,
         ]),
       ]),
-      el("div", { className: "rows" }, rows),
       el("div", { className: "share-card__ticket" }, [
         el("div", { className: "share-card__ticket-main" }, [
           el("p", { className: "share-card__ticket-label" }, "Remaining today"),
           el("p", { className: "share-card__ticket-amount" }, headline),
-        ]),
-        el("div", { className: "share-card__ticket-perf" }),
-        el("div", { className: "share-card__ticket-gauge-col" }, [
           el("div", { className: "share-card__ticket-track" }, [
             el("div", { className: "share-card__ticket-fill", style: `width:${ratio * 100}%` }),
           ]),
-          el(
-            "p",
-            { className: "share-card__ticket-caption" },
-            `${fmtMoney(spent, settings.currency)} of ${fmtMoney(settings.daily_allowance, settings.currency)}`
-          ),
+          el("p", { className: "share-card__ticket-caption" }, [
+            el("strong", {}, fmtMoney(spent, settings.currency)),
+            ` of ${fmtMoney(settings.daily_allowance, settings.currency)}`,
+          ]),
+          el("div", { className: "share-card__ticket-rule" }),
+          el("div", { className: "share-card__ticket-rows" }, rows),
         ]),
+        el("div", { className: "share-card__ticket-stub" }),
       ]),
       el("div", { className: "share-card__footer" }, [el("div", { className: "share-card__footer-rule" }), "eats Tab"]),
     ]),
