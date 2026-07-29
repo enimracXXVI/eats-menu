@@ -19,3 +19,7 @@ python3 -m http.server 8000
 ```
 
 Then visit `http://localhost:8000`. Log in with any username from the `users` tab (e.g. `carmine`, `marco`, `giulia`).
+
+## Sharing
+
+Today's Share button generates a read-only link (`?shared=<token>`) to that day's purchases, no login required. The token is an HMAC over the userId/date, not a stored row, so it needs a secret set once in the Apps Script project: **Extensions > Apps Script > Project Settings > Script Properties**, add `SHARE_SECRET` with any long random string. Sharing throws a clear error until that's set.

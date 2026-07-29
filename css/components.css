@@ -1042,3 +1042,226 @@ select.field__input {
     transform: translate(-50%, 0);
   }
 }
+
+/* ---------------------------------------------------------------------- *
+ * Share card — "Purchased today", exported as an image from the Today
+ * screen's share button, and reused as-is for the live page a shared
+ * read-only link opens. Its own self-contained visual block (not composed
+ * from .card/.ticket) since an exported PNG needs one fixed look regardless
+ * of what else is going on in the app's CSS.
+ * ---------------------------------------------------------------------- */
+
+.share-card {
+  width: 100%;
+  max-width: var(--app-max-width);
+  background: var(--color-ink);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.share-card__accent {
+  height: 6px;
+  width: 100%;
+  background: var(--color-paprika);
+}
+
+.share-card__body {
+  padding: 26px 30px;
+}
+
+.share-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.share-card__logo {
+  height: 24px;
+  width: auto;
+}
+
+.share-card__date {
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-lo);
+}
+
+.share-card__headline-block {
+  margin: 28px 0 18px;
+}
+
+.share-card__headline {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 34px;
+  text-transform: uppercase;
+  color: var(--color-paper);
+  line-height: 1;
+}
+
+.share-card__headline-rule {
+  width: 44px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-mustard);
+  margin: 10px 0 12px;
+}
+
+.share-card__subheadline {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-lo);
+}
+
+.share-card__subheadline strong {
+  color: var(--color-mustard);
+}
+
+/* Slightly roomier than the in-app .row — this is read as a photo, not
+   scrolled and tapped, so it can afford the extra size. */
+.share-card .row {
+  padding: 16px;
+}
+
+.share-card .row__title,
+.share-card .row__price {
+  font-size: var(--text-base);
+}
+
+.share-card__ticket {
+  margin-top: 20px;
+  background: var(--color-paper);
+  color: var(--color-text-ink);
+  border-radius: var(--radius-md);
+  padding: 14px 18px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 0 0 1.5px rgba(210, 98, 44, 0.35);
+}
+
+.share-card__ticket-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.share-card__ticket-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-paprika-strong);
+  font-weight: 700;
+}
+
+.share-card__ticket-amount {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+/* The real .ticket's dashed-perforation-plus-punch-holes, rotated into a
+   vertical divider — same visual grammar, turned sideways to fit a
+   horizontal strip instead of stacking label/gauge vertically. */
+.share-card__ticket-perf {
+  position: relative;
+  width: 1px;
+  align-self: stretch;
+  border-left: 2px dashed var(--color-line-ink);
+}
+
+.share-card__ticket-perf::before,
+.share-card__ticket-perf::after {
+  content: "";
+  position: absolute;
+  left: -7px;
+  width: 14px;
+  height: 14px;
+  background: var(--color-ink);
+  border-radius: 50%;
+}
+
+.share-card__ticket-perf::before {
+  top: -14px;
+}
+
+.share-card__ticket-perf::after {
+  bottom: -14px;
+}
+
+.share-card__ticket-gauge-col {
+  width: 168px;
+  flex-shrink: 0;
+}
+
+.share-card__ticket-track {
+  position: relative;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(34, 41, 31, 0.12);
+  overflow: hidden;
+}
+
+.share-card__ticket-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 4px;
+  background: var(--color-safe);
+}
+
+.share-card__ticket-caption {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--color-text-ink-lo);
+  text-align: right;
+}
+
+.share-card__footer {
+  margin-top: 26px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-lo);
+}
+
+.share-card__footer-rule {
+  height: 2px;
+  width: 40px;
+  background: var(--color-paprika);
+  margin: 0 auto 12px;
+  border-radius: 2px;
+}
+
+/* Off-screen mount used only while html-to-image captures the card — real
+   layout (an accurate capture needs the node actually laid out), just
+   never visible. A fixed width so the card renders at the same size
+   regardless of the viewport this happens to run in. */
+.share-card-stage {
+  position: fixed;
+  top: 0;
+  left: -9999px;
+  width: var(--app-max-width);
+  pointer-events: none;
+}
+
+/* The page a shared read-only link opens directly — no login, no nav, just
+   the card and a way into the real app. */
+.shared-page {
+  width: 100%;
+  max-width: var(--app-max-width);
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: var(--space-6) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+}
