@@ -1121,32 +1121,18 @@ select.field__input {
 }
 
 /* The ticket now carries the purchases themselves, not just the remaining
-   budget — a single paper block for "what happened today", with a narrow
-   perforated stub along its right edge (a real ticket's tear-off
-   counterfoil) instead of a divider running through the middle of it. */
+   budget — a single paper block for "what happened today". The perforation
+   is a decorative overlay (not a real layout column) positioned with real
+   room to its right for each row's time/quantity, with the ticket's own
+   top/bottom edges as where its punched circles land. */
 .share-card__ticket {
+  position: relative;
   margin-top: 20px;
-  display: flex;
   background: var(--color-paper);
   color: var(--color-text-ink);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  padding: 18px 20px;
   box-shadow: 0 0 0 1.5px rgba(210, 98, 44, 0.35);
-}
-
-.share-card__ticket-main {
-  flex: 1;
-  min-width: 0;
-  padding: 18px 18px 18px 20px;
-}
-
-.share-card__ticket-label {
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-paprika-strong);
-  font-weight: 700;
 }
 
 .share-card__ticket-amount {
@@ -1155,7 +1141,6 @@ select.field__input {
   font-size: 28px;
   letter-spacing: -0.01em;
   line-height: 1.25;
-  margin-top: 2px;
 }
 
 .share-card__ticket-track {
@@ -1201,13 +1186,13 @@ select.field__input {
 .share-card__ticket-row {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
 }
 
 .share-card__ticket-row-name {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1215,8 +1200,12 @@ select.field__input {
   color: var(--color-text-ink);
 }
 
+/* Sits past the perforation (see .share-card__ticket-perf) — reserved
+   width is generous on purpose so "12:32 · 2×" always fits on one line. */
 .share-card__ticket-row-meta {
   flex-shrink: 0;
+  min-width: 78px;
+  text-align: right;
   color: var(--color-text-ink-lo);
 }
 
@@ -1226,35 +1215,38 @@ select.field__input {
   color: var(--color-text-ink-lo);
 }
 
-/* Right-edge tear-off stub — same perforation grammar as the real app's
-   .ticket (a dashed line with punched-circle notches), turned 90° so the
-   notches cut into the ticket's top/bottom edges instead of its left/right,
-   and pushed to the right edge instead of sitting between two columns. */
-.share-card__ticket-stub {
-  position: relative;
-  width: 30px;
-  flex-shrink: 0;
-  background: var(--color-paper-2);
+/* Right-edge tear-off perforation — same grammar as the real app's .ticket
+   (a dashed line with punched-circle notches), turned 90° so the notches
+   cut into the ticket's top/bottom edges instead of its left/right. Purely
+   decorative (absolutely positioned, not a real flex column) so it can
+   span the ticket's full rendered height regardless of row count, with
+   real room reserved after it — see .share-card__ticket-row-meta — instead
+   of squeezing the time/quantity column into a fixed sliver. */
+.share-card__ticket-perf {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 118px;
+  width: 1px;
   border-left: 2px dashed var(--color-line-ink);
 }
 
-.share-card__ticket-stub::before,
-.share-card__ticket-stub::after {
+.share-card__ticket-perf::before,
+.share-card__ticket-perf::after {
   content: "";
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  left: -7px;
   width: 14px;
   height: 14px;
   background: var(--color-ink);
   border-radius: 50%;
 }
 
-.share-card__ticket-stub::before {
+.share-card__ticket-perf::before {
   top: -7px;
 }
 
-.share-card__ticket-stub::after {
+.share-card__ticket-perf::after {
   bottom: -7px;
 }
 

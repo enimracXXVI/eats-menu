@@ -58,20 +58,21 @@ export function buildShareCardNode({ display_name, date, purchases, settings }) 
         ]),
       ]),
       el("div", { className: "share-card__ticket" }, [
-        el("div", { className: "share-card__ticket-main" }, [
-          el("p", { className: "share-card__ticket-label" }, "Remaining today"),
-          el("p", { className: "share-card__ticket-amount" }, headline),
-          el("div", { className: "share-card__ticket-track" }, [
-            el("div", { className: "share-card__ticket-fill", style: `width:${ratio * 100}%` }),
-          ]),
-          el("p", { className: "share-card__ticket-caption" }, [
-            el("strong", {}, fmtMoney(spent, settings.currency)),
-            ` of ${fmtMoney(settings.daily_allowance, settings.currency)}`,
-          ]),
-          el("div", { className: "share-card__ticket-rule" }),
-          el("div", { className: "share-card__ticket-rows" }, rows),
+        el("p", { className: "share-card__ticket-amount" }, headline),
+        el("div", { className: "share-card__ticket-track" }, [
+          el("div", { className: "share-card__ticket-fill", style: `width:${ratio * 100}%` }),
         ]),
-        el("div", { className: "share-card__ticket-stub" }),
+        el("p", { className: "share-card__ticket-caption" }, [
+          el("strong", {}, fmtMoney(spent, settings.currency)),
+          ` of ${fmtMoney(settings.daily_allowance, settings.currency)}`,
+        ]),
+        el("div", { className: "share-card__ticket-rule" }),
+        el("div", { className: "share-card__ticket-rows" }, rows),
+        // Decorative only — the perforation itself, spanning the ticket's
+        // full height so its punched circles land on the ticket's real
+        // top/bottom edges. Positioned so the row meta (time · qty) has
+        // real room to sit past it, not the sliver a fixed side column left.
+        el("div", { className: "share-card__ticket-perf" }),
       ]),
       el("div", { className: "share-card__footer" }, [el("div", { className: "share-card__footer-rule" }), "eats Tab"]),
     ]),
