@@ -3,7 +3,7 @@
 // unstyled-different by screens/shared.js for the live read-only page a
 // shared link opens — one visual definition, two uses (an exported PNG,
 // and a real DOM node someone actually visits).
-import { el, fmtMoney, fmtTime, showToast, budgetState } from "./dom.js";
+import { el, fmtMoney, fmtTime, showToast } from "./dom.js";
 import { api } from "./api.js";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -24,14 +24,10 @@ function fmtWeekdayDate(isoDate) {
 
 export function buildShareCardNode({ display_name, date, purchases, settings }) {
   const spent = purchases.reduce((sum, p) => sum + p.price_paid, 0);
-  const { remaining } = budgetState(spent, settings.daily_allowance);
-  const ratio = settings.daily_allowance > 0 ? Math.min(spent / settings.daily_allowance, 1) : 0;
-  const headline =
-    remaining >= 0 ? `${fmtMoney(remaining, settings.currency)} left` : `${fmtMoney(-remaining, settings.currency)} over`;
 
-  // No per-item price here — the ticket's own total/gauge already say how
-  // much was spent, so each row only needs to answer "what" and "when/how
-  // many", not repeat a number that's already on the card.
+  // No per-item price and no allowance/remaining figures anywhere on this
+  // card — this gets shared with people who have no business seeing what
+  // someone's personal daily budget is. Just what was eaten, and when.
   const rows = purchases.length
     ? purchases.map((p) =>
         el("div", { className: "share-card__ticket-row" }, [
@@ -58,15 +54,6 @@ export function buildShareCardNode({ display_name, date, purchases, settings }) 
         ]),
       ]),
       el("div", { className: "share-card__ticket" }, [
-        el("p", { className: "share-card__ticket-amount" }, headline),
-        el("div", { className: "share-card__ticket-track" }, [
-          el("div", { className: "share-card__ticket-fill", style: `width:${ratio * 100}%` }),
-        ]),
-        el("p", { className: "share-card__ticket-caption" }, [
-          el("strong", {}, fmtMoney(spent, settings.currency)),
-          ` of ${fmtMoney(settings.daily_allowance, settings.currency)}`,
-        ]),
-        el("div", { className: "share-card__ticket-rule" }),
         el("div", { className: "share-card__ticket-rows" }, rows),
         // Decorative only — the perforation itself, spanning the ticket's
         // full height so its punched circles land on the ticket's real

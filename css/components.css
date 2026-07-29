@@ -1120,10 +1120,11 @@ select.field__input {
   color: var(--color-mustard);
 }
 
-/* The ticket now carries the purchases themselves, not just the remaining
-   budget — a single paper block for "what happened today". The perforation
-   is a decorative overlay (not a real layout column) positioned with real
-   room to its right for each row's time/quantity, with the ticket's own
+/* The ticket is just the purchases themselves — no allowance/remaining
+   figures anywhere on it, since this card gets shared with people who have
+   no reason to see someone's personal daily budget. The perforation is a
+   decorative overlay (not a real layout column) positioned with real room
+   to its right for each row's time/quantity, with the ticket's own
    top/bottom edges as where its punched circles land. */
 .share-card__ticket {
   position: relative;
@@ -1135,77 +1136,38 @@ select.field__input {
   box-shadow: 0 0 0 1.5px rgba(210, 98, 44, 0.35);
 }
 
-.share-card__ticket-amount {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 28px;
-  letter-spacing: -0.01em;
-  line-height: 1.25;
-}
-
-.share-card__ticket-track {
-  position: relative;
-  height: 7px;
-  border-radius: 4px;
-  background: rgba(34, 41, 31, 0.12);
-  overflow: hidden;
-  margin-top: 12px;
-}
-
-.share-card__ticket-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: 4px;
-  background: var(--color-safe);
-}
-
-.share-card__ticket-caption {
-  margin-top: 6px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--color-text-ink-lo);
-}
-
-.share-card__ticket-caption strong {
-  color: var(--color-text-ink);
-  font-weight: 600;
-}
-
-.share-card__ticket-rule {
-  height: 1px;
-  border-top: 2px dashed var(--color-line-ink);
-  margin: 16px 0 14px;
-}
-
 .share-card__ticket-rows {
   display: flex;
   flex-direction: column;
-  gap: 11px;
+  gap: 12px;
 }
 
 .share-card__ticket-row {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 10px;
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
 }
 
+/* Wraps rather than truncates — this card's whole point is showing what
+   was actually bought, so a long name loses to nothing, not even its own
+   row staying on one line. */
 .share-card__ticket-row-name {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: var(--text-sm);
   color: var(--color-text-ink);
 }
 
-/* Sits past the perforation (see .share-card__ticket-perf) — reserved
-   width is generous on purpose so "12:32 · 2×" always fits on one line. */
+/* Sits past the perforation (see .share-card__ticket-perf) — kept small
+   and narrow on purpose so the item name (the actual point of this card)
+   gets almost all the width instead of losing it to a timestamp. */
 .share-card__ticket-row-meta {
   flex-shrink: 0;
-  min-width: 78px;
+  min-width: 60px;
+  padding-top: 1px;
   text-align: right;
+  font-size: 11px;
   color: var(--color-text-ink-lo);
 }
 
@@ -1226,7 +1188,7 @@ select.field__input {
   position: absolute;
   top: 0;
   bottom: 0;
-  right: 118px;
+  right: 78px;
   width: 1px;
   border-left: 2px dashed var(--color-line-ink);
 }
