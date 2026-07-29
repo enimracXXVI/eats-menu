@@ -60,6 +60,9 @@ export const api = {
   logPurchases: (user, cartItems) => call("logPurchases", { user, cartItems }),
   deletePurchase: (purchaseId, requestedBy) => call("deletePurchase", { purchaseId, requestedBy }),
 
+  getShareLink: (userId, date) => call("getShareLink", { userId, date }),
+  getSharedPurchases: (token) => call("getSharedPurchases", { token }),
+
   // One request per screen instead of two or three — Apps Script's per-call
   // overhead dominates load time far more than what each call actually does.
   getTodayBundle: (opts = {}) => call("getTodayBundle", opts),

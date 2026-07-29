@@ -1,7 +1,8 @@
-import { el, fmtMoney, fmtTime, fmtDate, sectionHeader, showToast, budgetState } from "../dom.js";
+import { el, fmtMoney, fmtTime, fmtDate, sectionHeader, showToast, budgetState, onBusyClick, SHARE_ICON_SVG } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
 import { updateDockSpent } from "../cart.js";
+import { shareToday } from "../share-card.js";
 
 function buildTicket(spent, allowance, currency) {
   const { remaining, ratio, state: budget } = budgetState(spent, allowance);
@@ -77,6 +78,16 @@ export function renderToday(container, rerender, bundle) {
   const ticketSlot = el("div", {});
   const rowsSlot = el("div", {});
 
+  // `purchases` is read at click time via closure, not snapshotted here —
+  // a delete right before sharing (or right after) is always reflected,
+  // same as the ticket/rows themselves.
+  const shareBtn = el(
+    "button",
+    { className: "btn btn--icon", "aria-label": "Share today's purchases", html: SHARE_ICON_SVG },
+    []
+  );
+  onBusyClick(shareBtn, null, () => shareToday({ user: state.user, purchases, settings }));
+
   function refresh() {
     const spent = purchases.reduce((sum, p) => sum + p.price_paid, 0);
     ticketSlot.replaceChildren(buildTicket(spent, settings.daily_allowance, settings.currency));
@@ -105,6 +116,6 @@ export function renderToday(container, rerender, bundle) {
 
   container.replaceChildren(
     ticketSlot,
-    el("div", { className: "screen__section" }, [sectionHeader("Purchased today"), rowsSlot])
+    el("div", { className: "screen__section" }, [sectionHeader("Purchased today", shareBtn), rowsSlot])
   );
 }

@@ -5,6 +5,7 @@ import { renderLogin } from "./screens/login.js";
 import { renderToday } from "./screens/today.js";
 import { renderMenu } from "./screens/menu.js";
 import { renderAdmin } from "./screens/admin.js";
+import { renderShared } from "./screens/shared.js";
 import { mountCartDock, clearCartChangeListeners, onCartChange } from "./cart.js";
 
 const TABS = [
@@ -189,6 +190,13 @@ async function render() {
   }
 }
 
-window.addEventListener("hashchange", render);
-
-render();
+// A ?shared=<token> link opens the read-only shared view instead of the
+// real app entirely — no login, no router, no hashchange listener — so it
+// has to be checked before any of that boots.
+const sharedToken = new URLSearchParams(location.search).get("shared");
+if (sharedToken) {
+  renderShared(appRoot, sharedToken);
+} else {
+  window.addEventListener("hashchange", render);
+  render();
+}

@@ -40,6 +40,14 @@ export const BARCODE_ICON_SVG =
   '<rect x="18.5" y="4" width="2" height="16"/><rect x="21.5" y="4" width="1" height="16"/>' +
   "</svg>";
 
+// Standard "share" glyph (arrow out of a tray) — used by the Today
+// screen's share button, same line-icon treatment as the others.
+export const SHARE_ICON_SVG =
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M12 15V4"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>' +
+  "</svg>";
+
 const CURRENCY_SYMBOLS = {
   EUR: "€",
   GBP: "£",

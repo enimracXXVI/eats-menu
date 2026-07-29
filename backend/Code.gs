@@ -56,6 +56,8 @@ function handleAction(action, payload) {
     getPurchases: () => getPurchases(payload),
     logPurchases: () => logPurchases(payload.user, payload.cartItems),
     deletePurchase: () => deletePurchase(payload.purchaseId, payload.requestedBy),
+    getShareLink: () => getShareLink(payload.userId, payload.date),
+    getSharedPurchases: () => getSharedPurchases(payload.token),
     proposeMenuEdit: () => proposeMenuEdit(payload.edit, payload.proposer),
     reviewEdit: () => reviewEdit(payload.editId, payload.approve, payload.reviewer),
     addFavorite: () => addFavorite(payload.userId, payload.itemId),
@@ -510,6 +512,61 @@ function deletePurchase(purchaseId, requestedBy) {
   if (purchase.date !== isoDate(new Date())) throw new Error("You can only delete a purchase logged today.");
   deleteRow(SHEET.PURCHASES, purchase._row);
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// Sharing — a signed, no-login link to one user's one day of purchases.
+// The token carries userId and date in the open (neither is sensitive on
+// its own) plus an HMAC over both, computed with a secret only this script
+// knows. That's what makes a token unforgeable without a stored-token sheet
+// tab to manage: getSharedPurchases just re-derives the expected token from
+// the userId/date it decodes and checks it matches what was handed in.
+// ---------------------------------------------------------------------------
+
+// Set via Extensions > Apps Script > Project Settings > Script Properties.
+// Any long random string works — it's never sent anywhere, only used
+// locally to sign and verify tokens.
+function shareSecret() {
+  const secret = PropertiesService.getScriptProperties().getProperty("SHARE_SECRET");
+  if (!secret) throw new Error("Sharing isn't set up yet — missing the SHARE_SECRET script property.");
+  return secret;
+}
+
+function signShareToken(userId, date) {
+  const payload = userId + "." + date;
+  const bytes = Utilities.computeHmacSha256Signature(payload, shareSecret());
+  const sig = bytes.map((b) => (b < 0 ? b + 256 : b).toString(16).padStart(2, "0")).join("");
+  return Utilities.base64EncodeWebSafe(payload + "." + sig);
+}
+
+function getShareLink(userId, date) {
+  return { token: signShareToken(userId, date) };
+}
+
+function getSharedPurchases(token) {
+  let userId, date;
+  try {
+    const decoded = Utilities.newBlob(Utilities.base64DecodeWebSafe(token)).getDataAsString();
+    const parts = decoded.split(".");
+    userId = Number(parts[0]);
+    date = parts[1];
+  } catch (err) {
+    throw new Error("Invalid share link.");
+  }
+
+  if (!userId || !date || signShareToken(userId, date) !== token) {
+    throw new Error("Invalid share link.");
+  }
+
+  const user = readTable(SHEET.USERS).find((u) => u.user_id === userId);
+  if (!user) throw new Error("Invalid share link.");
+
+  return {
+    display_name: user.display_name,
+    date: date,
+    purchases: getPurchases({ userId: userId, date: date }),
+    settings: getSettings(),
+  };
 }
 
 // ---------------------------------------------------------------------------
