@@ -12,6 +12,7 @@ import {
   refreshButton,
   attachOptimisticToggle,
   BARCODE_ICON_SVG,
+  buildSelectField,
 } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
@@ -225,13 +226,11 @@ function buildSettingsCard(settings, rerender) {
     value: Number(settings.daily_allowance).toFixed(2),
   });
   formatPriceOnBlur(allowanceInput);
-  const currencyInput = el(
-    "select",
-    { className: "field__input" },
-    CURRENCIES.map((code) =>
-      el("option", { value: code, selected: code === settings.currency || null }, code)
-    )
-  );
+  const currencyInput = buildSelectField({
+    options: CURRENCIES.map((code) => ({ value: code, label: code })),
+    value: settings.currency,
+    placeholder: "Currency",
+  });
 
   const saveBtn = el("button", { className: "btn btn--primary btn--block" }, "Save settings");
   onBusyClick(saveBtn, "Saving…", async () => {

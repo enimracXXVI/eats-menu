@@ -325,6 +325,9 @@ function applyEdit(edit) {
   } else if (edit.type === "remove_item") {
     const item = readTable(SHEET.MENU).find((m) => m.item_id === edit.item_id);
     if (item) updateRow(SHEET.MENU, item._row, { active: false });
+  } else if (edit.type === "reinstate") {
+    const item = readTable(SHEET.MENU).find((m) => m.item_id === edit.item_id);
+    if (item) updateRow(SHEET.MENU, item._row, { active: true });
   } else {
     // "price_change" / "rename" / "edit" — any edit to an existing item's
     // name and/or price, whichever of those actually changed (see

@@ -6,7 +6,7 @@
   <title>eats Tab — Style Guide</title>
   <link rel="stylesheet" href="css/tokens.css?v=2" />
   <link rel="stylesheet" href="css/base.css?v=2" />
-  <link rel="stylesheet" href="css/components.css?v=3" />
+  <link rel="stylesheet" href="css/components.css?v=4" />
   <link rel="stylesheet" href="css/layout.css?v=2" />
   <link rel="stylesheet" href="css/styleguide.css?v=3" />
 </head>
@@ -328,14 +328,12 @@
               <button class="star-btn star-btn--active" aria-label="Remove from favourites"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.6-4.5 4.2 1.3 6-5.5-3.1-5.5 3.1 1.3-6-4.5-4.2 6.1-.6z"/></svg></button>
               <span class="row__title">Croissant</span>
               <span class="row__price u-tabular">€1.40</span>
-              <button class="btn btn--icon" aria-label="Propose edit">✎</button>
             </div>
             <div class="row row--tappable row--selected">
               <button class="star-btn" aria-label="Add to favourites"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.6-4.5 4.2 1.3 6-5.5-3.1-5.5 3.1 1.3-6-4.5-4.2 6.1-.6z"/></svg></button>
               <span class="row__title">Fruit</span>
               <button class="qty-badge">2</button>
               <span class="row__price u-tabular">€0.50</span>
-              <button class="btn btn--icon" aria-label="Propose edit">✎</button>
             </div>
             <div class="row row--tappable">
               <button class="star-btn" aria-label="Add to favourites"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.6-4.5 4.2 1.3 6-5.5-3.1-5.5 3.1 1.3-6-4.5-4.2 6.1-.6z"/></svg></button>
@@ -345,7 +343,7 @@
             </div>
           </div>
         </div>
-        <p class="sg-block__note">Menu's catalog rows (above): leading <code>.star-btn</code> favourites the item (see Badges above). <code>.row--tappable</code> darkens on hover/active. Tapping the row itself toggles it in/out of the cart — a second tap removes it, it does not keep incrementing. <code>.row--selected</code> + <code>.qty-badge</code> together mark an item already in the cart; tapping the badge (not the row) is what adjusts quantity. <code>.badge--pending</code> replaces the edit button while a change is queued — a superuser never sees this state on their own edits, which apply immediately, but does see it (as a tappable badge, opening a review sheet) on anyone else's.</p>
+        <p class="sg-block__note">Menu's catalog rows (above): leading <code>.star-btn</code> favourites the item (see Badges above). <code>.row--tappable</code> darkens on hover/active. Tapping the row itself toggles it in/out of the cart — a second tap removes it, it does not keep incrementing. <code>.row--selected</code> + <code>.qty-badge</code> together mark an item already in the cart; tapping the badge (not the row) is what adjusts quantity. There's no per-row edit control anymore — renaming, repricing, deleting, or reinstating any item (active or not) all go through the single "Edit item" sheet at the bottom of Menu, reached via a searchable <code>.select-field</code> rather than tapping a row. <code>.badge--pending</code> marks a row with a change awaiting review — a superuser never sees this state on their own edits, which apply immediately, but does see it (as a tappable badge, opening a review sheet) on anyone else's.</p>
         <p class="sg-block__note">Every favorited item also appears in a "Favourites" section at the top of the Menu tab (same row markup, reused as-is) — it collapses away entirely rather than showing an empty state once nothing is favorited.</p>
       </div>
 
@@ -408,20 +406,18 @@
       <p class="sg-block__note">The handle is a real drag surface, not a button — a tap does nothing; only dragging it down past ~35% of the sheet's height (or a fast flick, however short) dismisses it, tracking the finger 1:1 with no lag. Anything short of that eases back open. Tapping the backdrop or the phone/browser back button also closes the sheet, via a pushed history entry that's popped on close.</p>
 
       <div class="sg-block">
-        <span class="sg-block__label"><code>.sheet__title-row</code> — an optional header action next to the title, e.g. the delete-item trash icon on an existing item's edit sheet. Also used, with the title itself set to the edit's category, for the Menu tab's inline review sheet (Approve/Reject on a pending edit without detouring through Admin).</span>
+        <span class="sg-block__label"><code>openEditItemSheet()</code> (menu.js) — reached from a single "Edit item" button at the bottom of Menu, this replaces the old per-row pencil entirely. A <code>.select-field</code> (see Forms &amp; toggles) picks any item, active or not — the fields below it only appear once one's chosen. An active item (below) gets Delete; an inactive one gets a sage-styled Reinstate button in its place instead — see Sheets nesting inside sheets: this select-field's own picker opens as a second sheet stacked on top of this one, and confirmDialog's "Are you sure?" (below) can stack as a third on top of that.</span>
         <div class="sg-demo sg-demo--narrow">
           <div class="sheet">
             <div class="sheet__handle" aria-hidden="true"></div>
-            <div class="sheet__title-row">
-              <h2 class="sheet__title">Edit Croissant</h2>
-              <button class="btn btn--icon btn--icon--critical" aria-label="Delete"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>
-            </div>
+            <h2 class="sheet__title">Edit item</h2>
+            <div class="field"><label class="field__label">Item</label><button type="button" class="field__input select-field"><span class="select-field__label">Croissant</span></button></div>
             <div class="field"><label class="field__label">Name</label><input class="field__input" type="text" value="Croissant" /></div>
             <div class="field"><label class="field__label">Price</label><input class="field__input" type="number" value="1.40" /></div>
-            <div class="sheet__actions"><button class="btn btn--primary">Save</button></div>
+            <div class="sheet__actions"><button class="btn btn--critical">Delete</button><button class="btn btn--primary">Save</button></div>
           </div>
         </div>
-        <p class="sg-block__note">Item names are editable here, not locked — a typo is fixed the same way a price is. Superuser: applies immediately. Anyone else: queued, same as a price change.</p>
+        <p class="sg-block__note">Name is editable here too, not locked — a typo is fixed the same way a price is. Superuser: Save/Delete/Reinstate all apply immediately. Anyone else: all three are queued for review, same as any other menu change — nothing about this sheet bypasses the approval flow, it's just a faster way to reach any item, including ones no longer active.</p>
       </div>
 
       <div class="sg-block">
@@ -458,6 +454,20 @@
       </div>
 
       <div class="sg-block">
+        <span class="sg-block__label"><code>.select-field</code> — app-styled stand-in for <code>&lt;select&gt;</code> (<code>buildSelectField</code> in <code>dom.js</code>). A native select's open list renders with the OS/browser's own chrome, which no CSS here can touch — especially on mobile, where that's most of this app's usage — so tapping this opens the same bottom sheet every other picker uses instead, with an optional search field above the list for longer option sets (Menu's item picker; not needed for Admin's seven-currency list below).</span>
+        <div class="sg-demo sg-row" style="gap: var(--space-4);">
+          <div class="field" style="flex: 1;">
+            <label class="field__label">Currency</label>
+            <button type="button" class="field__input select-field"><span class="select-field__label">EUR</span></button>
+          </div>
+          <div class="field" style="flex: 1;">
+            <label class="field__label">Item</label>
+            <button type="button" class="field__input select-field select-field--placeholder"><span class="select-field__label">Choose an item</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sg-block">
         <span class="sg-block__label"><code>.switch</code> / <code>.switch--on</code> — Admin › Users (superuser + active toggles)</span>
         <div class="sg-demo sg-row sg-row--center">
           <button class="switch" role="switch" aria-checked="false" aria-label="Off example"></button>
@@ -479,16 +489,14 @@
       </div>
 
       <div class="sg-block">
-        <span class="sg-block__label"><code>.card</code> — Admin section container (Users, Settings). Currency is a <code>&lt;select&gt;</code>, never free text — the symbol shown everywhere else depends on picking one of these seven.</span>
+        <span class="sg-block__label"><code>.card</code> — Admin section container (Users, Settings). Currency is a <code>.select-field</code> (see Forms &amp; toggles above), never free text — the symbol shown everywhere else depends on picking one of these seven.</span>
         <div class="sg-demo sg-demo--narrow">
           <div class="card">
             <h2 class="card__title">Settings</h2>
             <div class="field"><label class="field__label">Daily allowance</label><input class="field__input" type="number" value="7.00" /></div>
             <div class="field">
               <label class="field__label">Currency</label>
-              <select class="field__input">
-                <option>EUR</option><option>GBP</option><option>USD</option><option>CAD</option><option>AUD</option><option>BRL</option><option>COP</option>
-              </select>
+              <button type="button" class="field__input select-field"><span class="select-field__label">EUR</span></button>
             </div>
             <button class="btn btn--primary btn--block">Save settings</button>
           </div>

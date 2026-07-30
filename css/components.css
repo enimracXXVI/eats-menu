@@ -777,13 +777,36 @@
    14px edge. Drawing the arrow ourselves puts it at the same 14px the left
    side uses, and frees the browser's default arrow (which can't be
    repositioned) entirely. */
-select.field__input {
+select.field__input,
+.select-field {
   appearance: none;
   -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='rgba(243,238,225,0.6)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
   padding-right: 34px;
+}
+
+/* .select-field — the app-styled <select> stand-in (see buildSelectField in
+   dom.js). Same field chrome and arrow as a real select; the button itself
+   only ever shows the current value, the actual picking happens in the
+   bottom sheet it opens (styled like everywhere else, not the browser's own
+   dropdown chrome, which no CSS here could reach anyway). */
+.select-field {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.select-field__label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-field--placeholder .select-field__label {
+  color: var(--color-text-lo);
 }
 
 .field__input::placeholder {

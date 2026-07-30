@@ -117,6 +117,8 @@ export function editCategoryLabel(edit) {
       return "New item";
     case "remove_item":
       return "Remove";
+    case "reinstate":
+      return "Reinstate";
     case "rename":
       return "Rename";
     case "edit":
@@ -170,6 +172,29 @@ export function mount(root, node) {
 // closes (a button inside it, the backdrop, a drag-dismiss, or back) — used
 // by confirmDialog below to resolve its promise even if the sheet was
 // dismissed without picking either option.
+//
+// Sheets can nest (buildSelectField opens one from inside whatever sheet
+// it's placed in) — a shared stack plus one shared popstate listener, not
+// one listener per sheet, is what makes that safe. Every sheet still pushes
+// its own history entry, but a given back-navigation must only ever close
+// the topmost sheet, not every listener still attached from sheets
+// underneath it. `pendingProgrammaticCloses` exists for the other half of
+// that: a sheet's own close() calls history.back() to unwind its pushState,
+// which fires a popstate "echo" of a close that already happened
+// synchronously — without counting and skipping that echo, it would go on
+// to close whatever sheet is left open underneath instead of doing nothing.
+const openSheetStack = [];
+let pendingProgrammaticCloses = 0;
+
+window.addEventListener("popstate", () => {
+  if (pendingProgrammaticCloses > 0) {
+    pendingProgrammaticCloses--;
+    return;
+  }
+  const top = openSheetStack[openSheetStack.length - 1];
+  if (top) top();
+});
+
 export function openSheet(title, bodyNode, headerAction = null, onClose = null) {
   let closed = false;
 
@@ -194,16 +219,13 @@ export function openSheet(title, bodyNode, headerAction = null, onClose = null) 
   document.body.append(backdrop);
 
   history.pushState({ sheet: true }, "");
-  window.addEventListener("popstate", onPopState);
-
-  function onPopState() {
-    finish();
-  }
+  openSheetStack.push(finish);
 
   function finish() {
     if (closed) return;
     closed = true;
-    window.removeEventListener("popstate", onPopState);
+    const index = openSheetStack.indexOf(finish);
+    if (index !== -1) openSheetStack.splice(index, 1);
     backdrop.remove();
     if (onClose) onClose();
   }
@@ -211,12 +233,106 @@ export function openSheet(title, bodyNode, headerAction = null, onClose = null) 
   function close() {
     if (closed) return;
     finish();
-    if (history.state && history.state.sheet) history.back();
+    if (history.state && history.state.sheet) {
+      pendingProgrammaticCloses++;
+      history.back();
+    }
   }
 
   attachSheetDrag(handle, sheetEl, backdrop, close);
 
   return close;
+}
+
+// A styled stand-in for <select> — a native select's open list renders with
+// the OS/browser's own chrome, which no CSS here can touch (least of all on
+// mobile, where that's most of this app's usage), so this opens the same
+// bottom sheet every other picker in the app already uses instead. Behaves
+// like a real form control for the caller: the returned trigger carries a
+// live `.value`, and `.refresh(options, value)` swaps its options/value in
+// place (e.g. once an async fetch of a longer list lands).
+// `options`: [{ value, label, hint }] — hint renders muted next to the
+// label (e.g. "inactive"). `searchable` adds a filter field atop the list,
+// worth it once the list is longer than a handful of options.
+export function buildSelectField({ options, value, placeholder = "Select…", onChange, searchable = false }) {
+  let currentOptions = options;
+  let current = value;
+  const label = el("span", { className: "select-field__label" }, "");
+  const trigger = el("button", { type: "button", className: "field__input select-field" }, [label]);
+  // A real <button>'s native `.value` always reflects to/from a string HTML
+  // attribute, silently stringifying anything assigned to it — useless here
+  // since option values are frequently numbers (item ids, user ids). This
+  // getter overrides that so `.value` keeps behaving like a normal form
+  // control's for callers (e.g. admin.js's `currencyInput.value.trim()`)
+  // without ever coercing a numeric value into "4" !== 4.
+  Object.defineProperty(trigger, "value", { get: () => current, configurable: true });
+
+  function paint() {
+    const match = currentOptions.find((o) => o.value === current);
+    label.textContent = match ? match.label : placeholder;
+    trigger.classList.toggle("select-field--placeholder", !match);
+  }
+
+  function choose(newValue) {
+    current = newValue;
+    paint();
+    if (onChange) onChange(newValue);
+  }
+
+  trigger.addEventListener("click", () => {
+    let query = "";
+    const listSlot = el("div", { className: "rows" }, []);
+
+    function renderList() {
+      const q = query.trim().toLowerCase();
+      const filtered = q ? currentOptions.filter((o) => o.label.toLowerCase().includes(q)) : currentOptions;
+      listSlot.replaceChildren(
+        ...(filtered.length
+          ? filtered.map((o) =>
+              el(
+                "div",
+                {
+                  className: `row row--tappable${o.value === current ? " row--selected" : ""}`,
+                  onClick: () => {
+                    choose(o.value);
+                    close();
+                  },
+                },
+                [
+                  el("span", { className: "row__title" }, o.label),
+                  o.hint ? el("span", { className: "row__meta" }, o.hint) : null,
+                ].filter(Boolean)
+              )
+            )
+          : [el("p", { className: "empty" }, "No matches.")])
+      );
+    }
+
+    const searchInput = searchable
+      ? el("input", {
+          className: "field__input",
+          type: "text",
+          placeholder: "Search…",
+          autofocus: true,
+          onInput: (event) => {
+            query = event.target.value;
+            renderList();
+          },
+        })
+      : null;
+
+    renderList();
+    const body = el("div", { className: "screen__section" }, [searchInput, listSlot].filter(Boolean));
+    const close = openSheet(placeholder, body);
+  });
+
+  paint();
+  trigger.refresh = (newOptions, newValue) => {
+    currentOptions = newOptions;
+    current = newValue;
+    paint();
+  };
+  return trigger;
 }
 
 // Real drag-to-dismiss, not a tap target: the sheet tracks the pointer

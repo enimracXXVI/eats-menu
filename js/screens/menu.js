@@ -11,12 +11,12 @@ import {
   editCategoryLabel,
   editPriceNode,
   editNameNode,
-  TRASH_ICON_SVG,
   CLOSE_ICON_SVG,
   SORT_ARROW_ICON_SVG,
   refreshButton,
   STAR_ICON_SVG_OUTLINE,
   STAR_ICON_SVG_FILLED,
+  buildSelectField,
 } from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
@@ -26,22 +26,16 @@ import { addToCart, removeCartLine, decrementCartItem, onCartChange } from "../c
 // to the plain count badge on its own, if it's not touched again.
 const STEPPER_IDLE_TIMEOUT_MS = 2000;
 
-function openProposeSheet({ item, onSubmitted }) {
-  const isNewItem = !item;
+function openAddItemSheet({ onSubmitted }) {
   const isSuperuser = state.user.is_superuser;
 
-  const nameInput = el("input", {
-    className: "field__input",
-    type: "text",
-    value: item ? item.name : "",
-    placeholder: "Item Name",
-  });
+  const nameInput = el("input", { className: "field__input", type: "text", value: "", placeholder: "Item Name" });
   const priceInput = el("input", {
     className: "field__input",
     type: "number",
     step: "0.01",
     min: "0",
-    value: item ? item.price.toFixed(2) : "",
+    value: "",
     placeholder: "0.00",
   });
   formatPriceOnBlur(priceInput);
@@ -53,15 +47,7 @@ function openProposeSheet({ item, onSubmitted }) {
     const proposed_name = nameInput.value.trim();
     if (!proposed_name || Number.isNaN(proposed_price)) return;
 
-    await api.proposeMenuEdit(
-      {
-        type: isNewItem ? "new_item" : "price_change",
-        item_id: item ? item.item_id : "",
-        proposed_name,
-        proposed_price,
-      },
-      state.user
-    );
+    await api.proposeMenuEdit({ type: "new_item", item_id: "", proposed_name, proposed_price }, state.user);
     showToast(isSuperuser ? "Updated" : "Sent for review");
     close();
     onSubmitted();
@@ -73,29 +59,95 @@ function openProposeSheet({ item, onSubmitted }) {
     el("div", { className: "sheet__actions" }, [saveBtn]),
   ]);
 
-  let deleteBtn = null;
-  if (!isNewItem) {
-    deleteBtn = el(
-      "button",
-      { className: "btn btn--icon btn--icon--critical", "aria-label": `Delete ${item.name}`, html: TRASH_ICON_SVG },
-      []
-    );
-    onBusyClick(deleteBtn, null, async () => {
-      const confirmMsg = isSuperuser
-        ? `Delete ${item.name}? This can't be undone.`
-        : `Propose removing ${item.name}? This change will be reviewed before it applies.`;
-      if (!(await confirmDialog(confirmMsg))) return;
+  const close = openSheet("Add new item", body);
+}
+
+// Reached from the bottom of Menu (replaces the old per-row pencil) — picks
+// any item, active or not, via the searchable select. An active item can be
+// renamed/repriced or deleted, same as the old pencil did; an inactive one
+// (soft-deleted — see Code.gs, nothing in this sheet is ever hard-deleted)
+// gets a Reinstate button in place of Delete instead, flipping it back to
+// active. `items` includes inactive rows on purpose — this is the only
+// place in the app that ever needs them, so it's fetched fresh when the
+// sheet opens rather than carried in Menu's own bundle (which stays
+// active-only, same as before).
+function openEditItemSheet({ items, onSubmitted }) {
+  const isSuperuser = state.user.is_superuser;
+  const detailsSlot = el("div", {});
+
+  function showItem(item) {
+    const nameInput = el("input", { className: "field__input", type: "text", value: item.name, placeholder: "Item Name" });
+    const priceInput = el("input", {
+      className: "field__input",
+      type: "number",
+      step: "0.01",
+      min: "0",
+      value: item.price.toFixed(2),
+      placeholder: "0.00",
+    });
+    formatPriceOnBlur(priceInput);
+
+    const saveBtn = el("button", { className: "btn btn--primary" }, isSuperuser ? "Save" : "Send for review");
+    onBusyClick(saveBtn, isSuperuser ? "Saving…" : "Sending…", async () => {
+      const proposed_price = parseFloat(priceInput.value);
+      const proposed_name = nameInput.value.trim();
+      if (!proposed_name || Number.isNaN(proposed_price)) return;
+
       await api.proposeMenuEdit(
-        { type: "remove_item", item_id: item.item_id, proposed_name: item.name, proposed_price: item.price },
+        { type: "price_change", item_id: item.item_id, proposed_name, proposed_price },
         state.user
       );
-      showToast(isSuperuser ? "Item deleted" : "Sent for review");
+      showToast(isSuperuser ? "Updated" : "Sent for review");
       close();
       onSubmitted();
     });
+
+    const statusBtn = item.active
+      ? el("button", { className: "btn btn--critical" }, "Delete")
+      : el("button", { className: "btn btn--safe" }, "Reinstate");
+    onBusyClick(statusBtn, null, async () => {
+      if (item.active) {
+        const confirmMsg = isSuperuser
+          ? `Delete ${item.name}? This can't be undone.`
+          : `Propose removing ${item.name}? This change will be reviewed before it applies.`;
+        if (!(await confirmDialog(confirmMsg))) return;
+        await api.proposeMenuEdit(
+          { type: "remove_item", item_id: item.item_id, proposed_name: item.name, proposed_price: item.price },
+          state.user
+        );
+        showToast(isSuperuser ? "Item deleted" : "Sent for review");
+      } else {
+        await api.proposeMenuEdit(
+          { type: "reinstate", item_id: item.item_id, proposed_name: item.name, proposed_price: item.price },
+          state.user
+        );
+        showToast(isSuperuser ? "Item reinstated" : "Sent for review");
+      }
+      close();
+      onSubmitted();
+    });
+
+    detailsSlot.replaceChildren(
+      el("div", { className: "field" }, [el("label", { className: "field__label" }, "Name"), nameInput]),
+      el("div", { className: "field" }, [el("label", { className: "field__label" }, "Price"), priceInput]),
+      el("div", { className: "sheet__actions" }, [statusBtn, saveBtn])
+    );
   }
 
-  const close = openSheet(isNewItem ? "Add new item" : `Edit ${item.name}`, body, deleteBtn);
+  const picker = buildSelectField({
+    options: items.map((item) => ({ value: item.item_id, label: item.name, hint: item.active ? null : "inactive" })),
+    value: null,
+    placeholder: "Choose an item",
+    searchable: true,
+    onChange: (itemId) => showItem(items.find((i) => i.item_id === itemId)),
+  });
+
+  const body = el("div", { className: "screen__section" }, [
+    el("div", { className: "field" }, [el("label", { className: "field__label" }, "Item"), picker]),
+    detailsSlot,
+  ]);
+
+  const close = openSheet("Edit item", body);
 }
 
 // Shown to a superuser when they tap a pending badge (existing-item edit/
@@ -264,20 +316,6 @@ function buildMenuRows(menu, pendingByItemId, query, currency, rerender, ui, fav
               )
           : null,
         el("span", { className: "row__price u-tabular" }, fmtMoney(item.price, currency)),
-        pending
-          ? null
-          : el(
-              "button",
-              {
-                className: "btn btn--icon",
-                "aria-label": `Propose edit for ${item.name}`,
-                onClick: (event) => {
-                  event.stopPropagation();
-                  openProposeSheet({ item, onSubmitted: rerender });
-                },
-              },
-              "✎"
-            ),
       ]
     );
   });
@@ -410,6 +448,15 @@ export function renderMenu(container, rerender, bundle, refreshInPlace) {
   const rowsSlot = el("div", {});
   const favoritesSectionSlot = el("div", {});
   const newItemSlot = el("div", {});
+
+  // Menu's own bundle stays active-only (see buildMenuRows) — inactive
+  // items only ever matter for this one sheet, so they're fetched on
+  // demand here rather than carried on every Menu load.
+  const editItemBtn = el("button", { className: "btn btn--outline btn--block" }, "Edit item");
+  onBusyClick(editItemBtn, "Loading…", async () => {
+    const items = await api.getMenu({ includeInactive: true });
+    openEditItemSheet({ items, onSubmitted: rerender });
+  });
 
   // Independent sort controls for the main Menu list and for Favourites —
   // sorting one doesn't disturb the other. Awaiting review stays in its own
@@ -572,9 +619,10 @@ export function renderMenu(container, rerender, bundle, refreshInPlace) {
       "button",
       {
         className: "btn btn--outline btn--block",
-        onClick: () => openProposeSheet({ item: null, onSubmitted: rerender }),
+        onClick: () => openAddItemSheet({ onSubmitted: rerender }),
       },
       "+ Add new item"
-    )
+    ),
+    editItemBtn
   );
 }
