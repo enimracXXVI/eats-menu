@@ -3,7 +3,7 @@
 // unstyled-different by screens/shared.js for the live read-only page a
 // shared link opens — one visual definition, two uses (an exported PNG,
 // and a real DOM node someone actually visits).
-import { el, fmtMoney, fmtTime, showToast } from "./dom.js";
+import { el, fmtMoney, fmtTime, showToast, todayIsoDate } from "./dom.js";
 import { api } from "./api.js";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -92,10 +92,6 @@ async function renderCardToBlob(data) {
   } finally {
     stage.remove();
   }
-}
-
-function todayIsoDate() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 // The whole "Share" button flow: renders the image, fetches the signed

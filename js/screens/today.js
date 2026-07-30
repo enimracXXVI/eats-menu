@@ -1,4 +1,15 @@
-import { el, fmtMoney, fmtTime, fmtDate, sectionHeader, showToast, budgetState, onBusyClick, SHARE_ICON_SVG } from "../dom.js";
+import {
+  el,
+  fmtMoney,
+  fmtTime,
+  fmtDate,
+  todayDateRome,
+  sectionHeader,
+  showToast,
+  budgetState,
+  onBusyClick,
+  SHARE_ICON_SVG,
+} from "../dom.js";
 import { api } from "../api.js";
 import { state } from "../state.js";
 import { updateDockSpent } from "../cart.js";
@@ -39,7 +50,7 @@ function buildTicket(spent, allowance, currency) {
 
 function buildLoggedRows(purchases, currency, onDelete) {
   if (purchases.length === 0) {
-    return el("p", { className: "empty" }, `Nothing purchased yet today ${fmtDate()}`);
+    return el("p", { className: "empty" }, `Nothing purchased yet today ${fmtDate(todayDateRome())}`);
   }
   const rows = purchases.map((p) =>
     el("div", { className: "row" }, [

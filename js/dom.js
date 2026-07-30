@@ -105,6 +105,33 @@ export function fmtDate(date = new Date()) {
   return `${String(date.getDate()).padStart(2, "0")} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
 }
 
+// The canteen is in Italy — every "today" boundary in this app (which
+// purchases show up under it, what date a purchase/today-bundle request
+// sends) is pinned to Europe/Rome, same as Code.gs's own LOCAL_TIMEZONE —
+// never the visiting device's own clock/timezone, and definitely never
+// UTC. `new Date().toISOString().slice(0, 10)` — which this used to be —
+// silently takes the UTC date instead, which is a full day behind Rome for
+// up to 2 hours every single day (Rome's CEST offset in summer): log in
+// after midnight Rome time but before UTC has rolled over, and the app
+// asked the backend for yesterday's purchases, not today's.
+function romeIsoDate(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(date);
+}
+
+// "YYYY-MM-DD" for right now in Europe/Rome.
+export function todayIsoDate() {
+  return romeIsoDate();
+}
+
+// A real local Date for "right now, as a Rome calendar date" — safe to
+// hand to fmtDate() (which reads getDate()/getMonth() via the browser's
+// own timezone) without reintroducing the same drift for whatever
+// timezone the device itself happens to be set to.
+export function todayDateRome() {
+  const [y, m, d] = romeIsoDate().split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 // Shared between the Admin approval list and the Menu tab's inline review
 // sheet, so "what kind of change is this" always reads the same way in both
 // places. This trusts edit.type as the single source of truth — the backend

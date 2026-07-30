@@ -1,4 +1,4 @@
-import { el, mount, fmtMoney, budgetState } from "./dom.js";
+import { el, mount, fmtMoney, budgetState, todayIsoDate } from "./dom.js";
 import { api } from "./api.js";
 import { state, logout } from "./state.js";
 import { renderLogin } from "./screens/login.js";
@@ -160,7 +160,7 @@ async function render() {
   async function refreshInPlace() {
     const bundle = await tab.fetchBundle({
       userId: state.user.user_id,
-      date: new Date().toISOString().slice(0, 10),
+      date: todayIsoDate(),
     });
     bundleCache.set(tab.path, bundle);
     if (currentPath() !== tab.path) return;
@@ -172,7 +172,7 @@ async function render() {
   try {
     const bundle = await tab.fetchBundle({
       userId: state.user.user_id,
-      date: new Date().toISOString().slice(0, 10),
+      date: todayIsoDate(),
     });
     bundleCache.set(tab.path, bundle);
 
