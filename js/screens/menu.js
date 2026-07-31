@@ -367,9 +367,14 @@ function createSortControls(currency, onChange) {
   });
 
   function compare(a, b) {
+    if (field === "price") {
+      const priceCmp = a.price - b.price;
+      // Ties (same price) always break alphabetically, regardless of the
+      // asc/desc toggle — that toggle is about price order, not name order.
+      return priceCmp !== 0 ? (dir === "asc" ? priceCmp : -priceCmp) : a.name.localeCompare(b.name);
+    }
     let cmp;
-    if (field === "price") cmp = a.price - b.price;
-    else if (field === "name") cmp = a.name.localeCompare(b.name);
+    if (field === "name") cmp = a.name.localeCompare(b.name);
     else cmp = a.item_id - b.item_id;
     return dir === "asc" ? cmp : -cmp;
   }
