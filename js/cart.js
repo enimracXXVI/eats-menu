@@ -186,8 +186,8 @@ function openCartSheet() {
     // class, and .ticket__gauge-caption's own color rule (declared later in
     // components.css) silently won the cascade, making the amount
     // functionally invisible.
-    const { remaining, state: budget } = budgetState(dockSpent + cartTotal(), dockAllowance);
-    const isOver = budget === "over";
+    const { remaining } = budgetState(dockSpent + cartTotal(), dockAllowance);
+    const isOver = remaining < 0;
     projectedNode.textContent = isOver ? "" : `${fmtMoney(remaining, currency)} left after this`;
     overWarning.textContent = isOver
       ? `This purchase will put you over your daily allowance by ${fmtMoney(-remaining, currency)}.`
